@@ -38,3 +38,6 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# WXT
+apps/extension/.output/
