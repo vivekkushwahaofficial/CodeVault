@@ -10,7 +10,9 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "format": "biome format . --write",
-    "check": "biome check ."
+    "check": "biome check .",
+    "typecheck": "turbo run typecheck",
+    "verify": "pnpm format && pnpm check && pnpm typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
