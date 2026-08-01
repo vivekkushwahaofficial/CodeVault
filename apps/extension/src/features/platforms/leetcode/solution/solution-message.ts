@@ -1,0 +1,2 @@
+export const SOLUTION_MESSAGE =
+  "CODEVAULT_SOLUTION";
