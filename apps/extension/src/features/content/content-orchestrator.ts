@@ -8,6 +8,8 @@ export class ContentOrchestrator {
    * Starts the CodeVault content workflow.
    */
   static async start(): Promise<void> {
+    console.log("🚀 CodeVault: Content script started");
+
     const adapter = PlatformFactory.create();
 
     await adapter.waitUntilReady(document);
@@ -17,10 +19,13 @@ export class ContentOrchestrator {
     }
 
     const metadata = await adapter.extractMetadata(document);
-    const solution = await adapter.extractSolution(document);
+
+    // Temporary log for testing
+    console.log("Extracted metadata:", metadata);
+
+    // const solution = await adapter.extractSolution(document);
 
     console.log("CodeVault detected accepted solution.");
-    console.log(metadata);
-    console.log(solution);
+    // console.log(solution);
   }
 }

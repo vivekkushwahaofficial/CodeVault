@@ -1,6 +1,7 @@
 import {
   isAcceptedSubmission as detectAcceptedSubmission,
 } from "./detector/accepted-detector";
+import { extractMetadata } from "./metadata/extract-metadata";
 import type { PlatformAdapter } from "../shared/platform-adapter";
 import type { ProblemMetadata } from "../shared/problem-metadata";
 import { waitForElement } from "../shared/wait/wait-for-element";
@@ -17,6 +18,11 @@ export class LeetCodeAdapter implements PlatformAdapter {
       document,
       '[data-e2e-locator="submission-result"]',
     );
+
+    await waitForElement(
+      document,
+      "div.text-title-large a",
+    );
   }
 
   /**
@@ -28,11 +34,9 @@ export class LeetCodeAdapter implements PlatformAdapter {
 
   /**
    * Extract normalized metadata.
-   * Will be implemented in a future feature.
    */
   async extractMetadata(document: Document): Promise<ProblemMetadata> {
-    void document;
-    throw new Error("extractMetadata() not implemented.");
+    return extractMetadata(document);
   }
 
   /**
