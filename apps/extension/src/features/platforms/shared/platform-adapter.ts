@@ -5,18 +5,23 @@ import type { ProblemMetadata } from "./problem-metadata";
  */
 export interface PlatformAdapter {
   /**
+   * Wait until the platform page is ready.
+   */
+  waitUntilReady(document: Document): Promise<void>;
+
+  /**
    * Returns true if the current page contains
    * a successfully accepted submission.
    */
-  isAcceptedSubmission(): boolean;
+  isAcceptedSubmission(document: Document): boolean;
 
   /**
    * Extract normalized metadata.
    */
-  extractMetadata(): Promise<ProblemMetadata>;
+  extractMetadata(document: Document): Promise<ProblemMetadata>;
 
   /**
    * Extract submitted source code.
    */
-  extractSolution(): Promise<string>;
+  extractSolution(document: Document): Promise<string>;
 }

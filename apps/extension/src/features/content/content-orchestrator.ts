@@ -10,12 +10,14 @@ export class ContentOrchestrator {
   static async start(): Promise<void> {
     const adapter = PlatformFactory.create();
 
-    if (!adapter.isAcceptedSubmission()) {
+    await adapter.waitUntilReady(document);
+
+    if (!adapter.isAcceptedSubmission(document)) {
       return;
     }
 
-    const metadata = await adapter.extractMetadata();
-    const solution = await adapter.extractSolution();
+    const metadata = await adapter.extractMetadata(document);
+    const solution = await adapter.extractSolution(document);
 
     console.log("CodeVault detected accepted solution.");
     console.log(metadata);

@@ -2,6 +2,7 @@
  * Waits until an element matching the selector exists.
  */
 export function waitForElement(
+  document: Document,
   selector: string,
 ): Promise<Element> {
   return new Promise((resolve) => {
