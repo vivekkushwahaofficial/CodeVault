@@ -1,3 +1,6 @@
+import {
+  isAcceptedSubmission as detectAcceptedSubmission,
+} from "./detector/accepted-detector";
 import type { PlatformAdapter } from "../shared/platform-adapter";
 import type { ProblemMetadata } from "../shared/problem-metadata";
 
@@ -9,7 +12,7 @@ export class LeetCodeAdapter implements PlatformAdapter {
    * Returns true if an accepted submission is detected.
    */
   isAcceptedSubmission(): boolean {
-    return document.body.innerText.includes("Accepted");
+    return detectAcceptedSubmission(document);
   }
 
   /**

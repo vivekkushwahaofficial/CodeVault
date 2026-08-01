@@ -18,9 +18,7 @@ export class ContentOrchestrator {
     const solution = await adapter.extractSolution();
 
     console.log("CodeVault detected accepted solution.");
-
     console.log(metadata);
-
     console.log(solution);
   }
 }
