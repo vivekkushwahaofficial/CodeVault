@@ -1,6 +1,12 @@
+import { ContentOrchestrator } from "../src/features/content/content-orchestrator";
+
 export default defineContentScript({
-  matches: ['*://*.google.com/*'],
-  main() {
-    console.log('Hello content.');
+  matches: [
+    "*://*.leetcode.com/*",
+    "*://*.geeksforgeeks.org/*",
+  ],
+
+  async main() {
+    await ContentOrchestrator.start();
   },
 });
