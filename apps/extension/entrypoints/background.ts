@@ -1,3 +1,33 @@
+import { createGithubFile }
+from "../src/features/github/github-client";
+
+
 export default defineBackground(() => {
-  console.log('Hello background!', { id: browser.runtime.id });
+
+
+  browser.runtime.onMessage.addListener(
+    async (message: any) => {
+
+
+      if(message.type === "CREATE_GITHUB_FILE") {
+
+
+        console.log(
+          "Background GitHub Sync:",
+          message.payload
+        );
+
+
+        await createGithubFile(
+          message.payload
+        );
+
+
+      }
+
+
+    }
+  );
+
+
 });
