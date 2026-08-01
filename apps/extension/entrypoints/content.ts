@@ -13,6 +13,8 @@ import { normalizeLanguage }
 import { getFileExtension }
   from "../src/features/platforms/leetcode/metadata/file-extension";
 
+import { githubConfig }
+  from "../src/features/github/github-config";
 
 export default defineContentScript({
 
@@ -89,13 +91,14 @@ export default defineContentScript({
 
 
           browser.runtime.sendMessage({
+
             type: "CREATE_GITHUB_FILE",
 
             payload: {
 
-              owner: "vivekkushwahaofficial",
+              owner: githubConfig.owner,
 
-              repo: "CodeVault",
+              repo: githubConfig.repo,
 
               path:
                 `LeetCode/${metadata.difficulty}/${metadata.title.replaceAll(" ", "-")}.${extension}`,
