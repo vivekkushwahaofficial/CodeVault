@@ -1,0 +1,20 @@
+{
+  "name": "codevault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CodeVault - Automatic coding solution manager for LeetCode, GeeksforGeeks, and more.",
+  "packageManager": "pnpm@10.26.2",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "format": "biome format . --write",
+    "check": "biome check ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.6",
+    "turbo": "^2.10.8",
+    "typescript": "^7.0.2"
+  }
+}
