@@ -32,6 +32,9 @@ importers:
       react-dom:
         specifier: ^19.2.4
         version: 19.2.8(react@19.2.8)
+      webextension-polyfill:
+        specifier: ^0.12.0
+        version: 0.12.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -45,6 +48,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.4(@types/react@19.2.18)
+      '@types/webextension-polyfill':
+        specifier: ^0.12.5
+        version: 0.12.5
       '@wxt-dev/module-react':
         specifier: ^1.1.5
         version: 1.2.2(vite@8.2.0(@types/node@26.1.2)(jiti@2.7.0))(wxt@0.21.3(eslint@9.39.4(jiti@2.7.0))(rolldown@1.2.1)(typescript@5.9.3)(vite@8.2.0(@types/node@26.1.2)(jiti@2.7.0))(web-ext@10.5.0(jiti@2.7.0)))
@@ -499,6 +505,9 @@ packages:
 
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
+
+  '@types/webextension-polyfill@0.12.5':
+    resolution: {integrity: sha512-uKSAv6LgcVdINmxXMKBuVIcg/2m5JZugoZO8x20g7j2bXJkPIl/lVGQcDlbV+aXAiTyXT2RA5U5mI4IGCDMQeg==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -2131,6 +2140,9 @@ packages:
     engines: {node: '>=20.0.0', npm: '>=8.0.0'}
     hasBin: true
 
+  webextension-polyfill@0.12.0:
+    resolution: {integrity: sha512-97TBmpoWJEE+3nFBQ4VocyCdLKfw54rFaJ6EVQYLBCXqCIpLSZkwGgASpv4oPt9gdKCJ80RJlcmNzNn008Ag6Q==}
+
   webpack-virtual-modules@0.6.2:
     resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
 
@@ -2640,6 +2652,8 @@ snapshots:
   '@types/react@19.2.18':
     dependencies:
       csstype: 3.2.3
+
+  '@types/webextension-polyfill@0.12.5': {}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
@@ -4161,6 +4175,8 @@ snapshots:
       - jiti
       - safe-compare
       - supports-color
+
+  webextension-polyfill@0.12.0: {}
 
   webpack-virtual-modules@0.6.2: {}
 
