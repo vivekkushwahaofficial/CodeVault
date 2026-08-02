@@ -8,6 +8,22 @@ export default defineConfig({
   ],
 
   manifest: {
+
+    name: "CodeVault",
+
+    short_name: "CodeVault",
+
+    description:
+      "Automatically extract, organize, and sync coding solutions to GitHub.",
+
+    icons: {
+      "16": "/icons/icon16.png",
+      "32": "/icons/icon32.png",
+      "48": "/icons/icon48.png",
+      "96": "/icons/icon96.png",
+      "128": "/icons/icon128.png",
+    },
+
     web_accessible_resources: [
       {
         resources: [
@@ -15,9 +31,11 @@ export default defineConfig({
         ],
         matches: [
           "*://leetcode.com/*",
+          "*://*.leetcode.com/*",
         ],
       },
     ],
+
   },
 
 });
