@@ -1,6 +1,5 @@
 import { defineConfig } from "wxt";
 
-
 export default defineConfig({
 
   modules: [
@@ -14,7 +13,17 @@ export default defineConfig({
     short_name: "CodeVault",
 
     description:
-      "Automatically extract, organize, and sync coding solutions to GitHub.",
+      "Automatically extract and sync coding solutions to GitHub.",
+
+    permissions: [
+      "identity",
+      "storage",
+    ],
+
+    host_permissions: [
+      "https://github.com/*",
+      "https://api.github.com/*",
+    ],
 
     icons: {
       "16": "/icons/icon16.png",

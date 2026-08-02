@@ -41,3 +41,6 @@ coverage/
 
 # WXT
 apps/extension/.output/
+
+apps/backend/.env
+.env
