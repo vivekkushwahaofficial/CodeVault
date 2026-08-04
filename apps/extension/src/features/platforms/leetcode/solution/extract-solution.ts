@@ -1,5 +1,8 @@
+import { SOLUTION_MESSAGE } from "./solution-message";
+
+
 export async function extractSolution(
-  document: Document
+  document: Document,
 ): Promise<string> {
 
   void document;
@@ -7,24 +10,81 @@ export async function extractSolution(
 
   return new Promise((resolve) => {
 
-    const handler = (event: MessageEvent) => {
 
-      if (
-        event.data?.type === "CODEVAULT_SOLUTION"
-      ) {
-
-        window.removeEventListener(
-          "message",
-          handler,
-        );
+    let resolved = false;
 
 
-        resolve(
-          event.data.solution,
-        );
-      }
+
+    const cleanup = () => {
+
+      window.removeEventListener(
+        "message",
+        handler,
+      );
 
     };
+
+
+
+    const handler = (
+      event: MessageEvent,
+    ) => {
+
+
+      if (
+        event.data?.type !== SOLUTION_MESSAGE
+      ) {
+
+        return;
+
+      }
+
+
+
+      if (resolved) {
+
+        return;
+
+      }
+
+
+
+      const solution =
+        event.data.solution ?? "";
+
+
+
+      if (!solution.trim()) {
+
+        console.log(
+          "CodeVault: Empty solution received",
+        );
+
+        return;
+
+      }
+
+
+
+      resolved = true;
+
+
+      cleanup();
+
+
+
+      console.log(
+        "CodeVault: Solution received",
+        solution.length,
+      );
+
+
+
+      resolve(solution);
+
+
+    };
+
 
 
     window.addEventListener(
@@ -33,20 +93,88 @@ export async function extractSolution(
     );
 
 
+
+    function requestSolution() {
+
+      window.postMessage(
+
+        {
+          type:
+            "CODEVAULT_REQUEST_SOLUTION",
+        },
+
+        "*",
+
+      );
+
+    }
+
+
+
+    // First request
+    requestSolution();
+
+
+
+    // Retry because Monaco may load late
+    const retryTimer =
+      setInterval(() => {
+
+
+        if (resolved) {
+
+          clearInterval(
+            retryTimer,
+          );
+
+          return;
+
+        }
+
+
+        requestSolution();
+
+
+      }, 2000);
+
+
+
     setTimeout(() => {
 
-      window.removeEventListener(
-        "message",
-        handler,
+
+      if (resolved) {
+
+        return;
+
+      }
+
+
+
+      resolved = true;
+
+
+      clearInterval(
+        retryTimer,
       );
+
+
+
+      cleanup();
+
+
 
       console.log(
         "CodeVault: Solution extraction timeout",
       );
 
+
+
       resolve("");
 
-    }, 10000);
+    }, 30000);
+
+
 
   });
+
 }

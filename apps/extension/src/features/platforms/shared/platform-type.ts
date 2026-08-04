@@ -2,6 +2,6 @@
  * Supported coding platforms.
  */
 export enum PlatformType {
-  LEETCODE = "leetcode",
+  LEETCODE = "LeetCode",
   GFG = "gfg",
 }

@@ -2,6 +2,7 @@ import { commitSolution } from "../services/github-commit-service";
 
 import type { SolutionPackage } from "./types/solution-package";
 
+
 export interface SyncResult {
 
   success: boolean;
@@ -10,11 +11,28 @@ export interface SyncResult {
 
 }
 
+
 export async function syncSolution(
   solution: SolutionPackage,
 ): Promise<SyncResult> {
 
-  if (solution.files.length === 0) {
+
+  console.log(
+    "🔄 Starting GitHub Sync",
+  );
+
+
+  console.log(
+    "Solution Package:",
+    solution,
+  );
+
+
+
+  if (
+    !solution.files ||
+    solution.files.length === 0
+  ) {
 
     throw new Error(
       "No files to synchronize.",
@@ -22,7 +40,17 @@ export async function syncSolution(
 
   }
 
+
+
   for (const file of solution.files) {
+
+
+    console.log(
+      "Checking file:",
+      file.path,
+    );
+
+
 
     if (!file.path.trim()) {
 
@@ -32,6 +60,8 @@ export async function syncSolution(
 
     }
 
+
+
     if (!file.content.trim()) {
 
       throw new Error(
@@ -40,9 +70,15 @@ export async function syncSolution(
 
     }
 
+
   }
 
-  if (!solution.commitMessage.trim()) {
+
+
+  if (
+    !solution.commitMessage ||
+    !solution.commitMessage.trim()
+  ) {
 
     throw new Error(
       "Commit message is missing.",
@@ -50,14 +86,54 @@ export async function syncSolution(
 
   }
 
-  await commitSolution(solution);
+
+
+  console.log(
+    "✅ Validation passed",
+  );
+
+
+
+  console.log(
+    "📂 Files before GitHub upload:",
+  );
+
+
+
+  solution.files.forEach(
+    (file) => {
+
+      console.log(
+        "PATH:",
+        file.path,
+      );
+
+
+    },
+  );
+
+
+
+  await commitSolution(
+    solution,
+  );
+
+
+
+  console.log(
+    "🚀 GitHub sync completed",
+  );
+
+
 
   return {
 
     success: true,
 
-    message: "Solution committed successfully.",
+    message:
+      "Solution committed successfully.",
 
   };
+
 
 }

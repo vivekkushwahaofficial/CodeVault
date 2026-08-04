@@ -1,20 +1,6 @@
-import { cleanSolution }
-  from "../src/features/platforms/leetcode/solution/clean-solution";
+import { ContentOrchestrator }
+from "../src/features/content/content-orchestrator";
 
-import { extractLeetCodeMetadata }
-  from "../src/features/platforms/leetcode/metadata/leetcode-metadata";
-
-import { extractLeetCodeLanguage }
-  from "../src/features/platforms/leetcode/metadata/leetcode-language";
-
-import { normalizeLanguage }
-  from "../src/features/platforms/leetcode/metadata/normalize-language";
-
-import { getFileExtension }
-  from "../src/features/platforms/leetcode/metadata/file-extension";
-
-import { githubConfig }
-  from "../src/features/github/github-config";
 
 export default defineContentScript({
 
@@ -26,7 +12,9 @@ export default defineContentScript({
 
   async main() {
 
-    console.log("CodeVault content started");
+    console.log(
+      "[CodeVault] Content script initialized.",
+    );
 
 
     await injectScript(
@@ -37,83 +25,46 @@ export default defineContentScript({
     );
 
 
-    window.addEventListener(
-      "message",
-      async (event) => {
+    console.log(
+      "[CodeVault] Waiting for LeetCode submission...",
+    );
 
 
-        if (event.data?.type === "CODEVAULT_SOLUTION") {
+    const submitButton =
+      document.querySelector(
+        "button[data-e2e-locator='console-submit-button']"
+      );
 
 
-          const rawSolution =
-            event.data.solution;
+    if (!submitButton) {
+
+      console.log(
+        "[CodeVault] Submit button not found. Waiting...",
+      );
+
+      return;
+
+    }
 
 
-          const cleanedSolution =
-            cleanSolution(rawSolution);
+    submitButton.addEventListener(
+      "click",
+      async () => {
+
+        console.log(
+          "[CodeVault] Submit clicked. Checking result...",
+        );
 
 
-          const metadata =
-            extractLeetCodeMetadata();
+        setTimeout(
+          async () => {
 
+            await ContentOrchestrator.start();
 
-          const language =
-            normalizeLanguage(
-              extractLeetCodeLanguage(),
-            );
+          },
+          2000,
+        );
 
-
-          const extension =
-            getFileExtension(language);
-
-
-
-          const solutionData = {
-
-            ...metadata,
-
-            language,
-
-            code: cleanedSolution,
-
-            solvedAt:
-              new Date().toISOString(),
-
-          };
-
-
-
-          console.log(
-            "CodeVault Solution Object:",
-            solutionData,
-          );
-
-
-
-          browser.runtime.sendMessage({
-
-            type: "CREATE_GITHUB_FILE",
-
-            payload: {
-
-              owner: githubConfig.owner,
-
-              repo: githubConfig.repo,
-
-              path:
-                `LeetCode/${metadata.difficulty}/${metadata.title.replaceAll(" ", "-")}.${extension}`,
-
-              content: cleanedSolution,
-
-              message:
-                `feat(leetcode): Add ${metadata.title}`,
-
-            },
-
-          });
-
-
-        }
 
       },
     );

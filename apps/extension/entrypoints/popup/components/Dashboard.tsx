@@ -1,4 +1,35 @@
+import { useEffect, useState } from "react";
+
+import {
+  getGithubSettings,
+  type GithubSettings,
+} from "../../../src/features/github/github-auth/github-storage";
+
+
 export default function Dashboard() {
+
+  const [settings, setSettings] =
+    useState<GithubSettings | null>(null);
+
+
+
+  useEffect(() => {
+
+    async function loadSettings() {
+
+      const githubSettings =
+        await getGithubSettings();
+
+      setSettings(githubSettings);
+
+    }
+
+
+    loadSettings();
+
+  }, []);
+
+
 
   return (
 
@@ -17,6 +48,8 @@ export default function Dashboard() {
       >
         🚀 CodeVault
       </h2>
+
+
 
       <div
         style={{
@@ -38,6 +71,8 @@ export default function Dashboard() {
 
       </div>
 
+
+
       <div
         style={{
           marginTop: "20px",
@@ -53,11 +88,16 @@ export default function Dashboard() {
           GitHub
         </p>
 
+
         <strong>
-          vivekkushwahaofficial
+          {settings?.owner ?? "Not connected"}
         </strong>
 
+
       </div>
+
+
+
 
       <div
         style={{
@@ -74,11 +114,42 @@ export default function Dashboard() {
           Repository
         </p>
 
+
         <strong>
-          codevault-solutions
+          {settings?.repo ?? "No repository selected"}
         </strong>
 
+
       </div>
+
+
+
+
+      <div
+        style={{
+          marginTop: "18px",
+        }}
+      >
+
+        <p
+          style={{
+            color: "#9ca3af",
+            marginBottom: "4px",
+          }}
+        >
+          Branch
+        </p>
+
+
+        <strong>
+          {settings?.branch ?? "Not configured"}
+        </strong>
+
+
+      </div>
+
+
+
 
       <hr
         style={{
@@ -87,6 +158,8 @@ export default function Dashboard() {
           borderTop: "1px solid #444",
         }}
       />
+
+
 
       <div
         style={{
@@ -102,11 +175,14 @@ export default function Dashboard() {
           ⏳ Waiting for accepted
         </p>
 
+
         <p>
           LeetCode submissions...
         </p>
 
+
       </div>
+
 
     </div>
 
