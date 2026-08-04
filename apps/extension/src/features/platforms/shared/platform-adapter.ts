@@ -1,9 +1,11 @@
 import type { ProblemMetadata } from "./problem-metadata";
+import type { ProblemStatement } from "./problem-statement";
 
 /**
  * Every coding platform must implement this contract.
  */
 export interface PlatformAdapter {
+
   /**
    * Wait until the platform page is ready.
    */
@@ -18,10 +20,22 @@ export interface PlatformAdapter {
   /**
    * Extract normalized metadata.
    */
-  extractMetadata(document: Document): Promise<ProblemMetadata>;
+  extractMetadata(
+    document: Document
+  ): Promise<ProblemMetadata>;
 
   /**
-   * Extract submitted source code.
+   * Extract the submitted source code.
    */
-  extractSolution(document: Document): Promise<string>;
+  extractSolution(
+    document: Document
+  ): Promise<string>;
+
+  /**
+   * Extract the complete problem statement.
+   */
+  extractProblemStatement(
+    document: Document
+  ): Promise<ProblemStatement>;
+
 }
