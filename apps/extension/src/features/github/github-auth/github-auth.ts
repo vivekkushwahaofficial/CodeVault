@@ -1,46 +1,54 @@
+import { getGithubSettings } from "./github-storage";
+
 export async function verifyGithubConnection() {
 
   try {
 
-    const token =
-      localStorage.getItem("github_token");
+    const settings =
+      await getGithubSettings();
 
-
-    if (!token) {
+    if (!settings) {
 
       return {
+
         success: false,
-        message: "Token missing"
+
+        message: "GitHub settings not found",
+
       };
 
     }
-
 
     const response =
       await fetch(
         "https://api.github.com/user",
         {
+
           headers: {
-            Authorization: `Bearer ${token}`,
+
+            Authorization: `Bearer ${settings.token}`,
+
             Accept: "application/vnd.github+json",
+
           },
+
         }
       );
-
 
     if (!response.ok) {
 
       return {
+
         success: false,
-        message: "Invalid GitHub token"
+
+        message: "Invalid GitHub token",
+
       };
 
     }
 
-
     const user =
       await response.json();
-
 
     return {
 
@@ -50,18 +58,15 @@ export async function verifyGithubConnection() {
 
     };
 
-
-  } catch (error) {
-
+  } catch {
 
     return {
 
       success: false,
 
-      message: "GitHub connection failed"
+      message: "GitHub connection failed",
 
     };
-
 
   }
 

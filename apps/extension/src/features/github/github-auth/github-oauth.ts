@@ -1,26 +1,17 @@
 import { exchangeGithubCode } from "../api/github-token";
+import { saveGithubSettings } from "./github-storage";
 
 const GITHUB_CLIENT_ID =
-  "Ov23lixqgD0bTqArz6iL";
+  "Ov23liPu0u6Ux2Q6GgRS";
 
 export async function authenticateGithub() {
 
-  console.log("VIVEK TEST BUILD 12345");
+  console.log("Starting GitHub OAuth...");
 
   try {
 
     const redirectUri =
       browser.identity.getRedirectURL();
-
-    alert(
-      "Redirect URI:\n\n" +
-      redirectUri
-    );
-
-    console.log(
-      "Redirect URI:",
-      redirectUri
-    );
 
     const githubUrl =
       new URL(
@@ -42,32 +33,14 @@ export async function authenticateGithub() {
       "repo user"
     );
 
-    const oauthUrl =
-      githubUrl.toString();
-
-    console.log(
-      "OAuth URL:",
-      oauthUrl
-    );
-
-    prompt(
-      "OAuth URL",
-      oauthUrl
-    );
-
     const responseUrl =
       await browser.identity.launchWebAuthFlow({
 
-        url: oauthUrl,
+        url: githubUrl.toString(),
 
         interactive: true,
 
       });
-
-    console.log(
-      "Response URL:",
-      responseUrl
-    );
 
     if (!responseUrl) {
 
@@ -82,11 +55,6 @@ export async function authenticateGithub() {
         .searchParams
         .get("code");
 
-    console.log(
-      "Authorization Code:",
-      code
-    );
-
     if (!code) {
 
       throw new Error(
@@ -98,20 +66,24 @@ export async function authenticateGithub() {
     const accessToken =
       await exchangeGithubCode(code);
 
-    console.log(
-      "Access Token:",
-      accessToken
-    );
+    await saveGithubSettings({
+
+      owner: "",
+
+      repo: "",
+
+      token: accessToken,
+
+    });
 
     return accessToken;
 
   } catch (error) {
 
     console.error(
-      "========== FULL ERROR =========="
+      "GitHub OAuth failed:",
+      error
     );
-
-    console.error(error);
 
     throw error;
 

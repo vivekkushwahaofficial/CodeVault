@@ -1,5 +1,5 @@
 import type { GitHubFileRequest } from "./github-types";
-
+import { getGithubSettings } from "./github-auth/github-storage";
 
 export async function createGithubFile(
   request: GitHubFileRequest
@@ -10,13 +10,19 @@ export async function createGithubFile(
     repo,
     path,
     content,
-    message
+    message,
   } = request;
 
+  const settings =
+    await getGithubSettings();
 
-  const GITHUB_TOKEN =
-    import.meta.env.VITE_GITHUB_TOKEN;
+  if (!settings) {
 
+    throw new Error(
+      "GitHub settings not found."
+    );
+
+  }
 
   const encodedContent =
     btoa(
@@ -25,65 +31,74 @@ export async function createGithubFile(
       )
     );
 
-
   const url =
     `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
 
+  const existing =
+    await fetch(
+      url,
+      {
 
-  const existing = await fetch(
-    url,
-    {
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        Accept: "application/vnd.github+json"
+        headers: {
+
+          Authorization: `Bearer ${settings.token}`,
+
+          Accept: "application/vnd.github+json",
+
+        },
+
       }
-    }
-  );
+    );
 
-
-  let sha;
-
+  let sha: string | undefined;
 
   if (existing.ok) {
 
-    const data = await existing.json();
+    const data =
+      await existing.json();
 
     sha = data.sha;
 
   }
 
+  const response =
+    await fetch(
+      url,
+      {
 
-  const response = await fetch(
-    url,
-    {
-      method: "PUT",
+        method: "PUT",
 
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json"
-      },
+        headers: {
 
-      body: JSON.stringify({
+          Authorization: `Bearer ${settings.token}`,
 
-        message,
+          Accept: "application/vnd.github+json",
 
-        content: encodedContent,
+          "Content-Type": "application/json",
 
-        ...(sha && { sha })
+        },
 
-      })
+        body: JSON.stringify({
 
-    }
-  );
+          message,
 
+          content: encodedContent,
 
-  const result = await response.json();
+          ...(sha && { sha }),
 
+        }),
 
-  console.log(
-    "GitHub response:",
-    result
-  );
+      }
+    );
+
+  if (!response.ok) {
+
+    throw new Error(
+      "Failed to create GitHub file."
+    );
+
+  }
+
+  return await response.json();
 
 }

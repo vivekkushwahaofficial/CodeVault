@@ -1,39 +1,42 @@
 import { authenticateGithub } from "../../src/features/github/github-auth/github-oauth";
-
+import { getGithubUser } from "../../src/features/github/api/github-user";
 
 export default function App() {
 
   async function connectGithub() {
 
-    console.log("1. Button clicked");
-
-
     try {
 
-      console.log("2. Calling authenticateGithub");
+      console.log("Authenticating...");
 
+      await authenticateGithub();
 
-      const token =
-        await authenticateGithub();
+      console.log("Fetching GitHub user...");
 
+      const user =
+        await getGithubUser();
 
-      console.log(
-        "3. OAuth Completed:",
-        token
+      alert(
+        `Connected as ${user.login}`
       );
 
+    } catch (error) {
 
-    } catch(error) {
+      console.error(error);
 
-      console.error(
-        "4. OAuth Error:",
-        error
-      );
+      if (error instanceof Error) {
+
+        alert(error.message);
+
+      } else {
+
+        alert("Unknown error");
+
+      }
 
     }
 
   }
-
 
   return (
 
@@ -48,13 +51,11 @@ export default function App() {
         🚀 CodeVault
       </h1>
 
-
       <button
         onClick={connectGithub}
       >
         Authenticate GitHub
       </button>
-
 
     </div>
 

@@ -5,7 +5,6 @@ export async function exchangeGithubCode(
   const response = await fetch(
     "http://localhost:8080/api/github/oauth/token",
     {
-
       method: "POST",
 
       headers: {
@@ -27,15 +26,17 @@ export async function exchangeGithubCode(
 
   }
 
+  const text =
+    await response.text();
+
   const data =
-    await response.json();
+    JSON.parse(text);
 
-  console.log(
-    "Backend Response:",
-    data
-  );
+  const accessToken =
+    data.accessToken ??
+    data.access_token;
 
-  if (!data.accessToken) {
+  if (!accessToken) {
 
     throw new Error(
       "Access token not received."
@@ -43,6 +44,6 @@ export async function exchangeGithubCode(
 
   }
 
-  return data.accessToken;
+  return accessToken;
 
 }
