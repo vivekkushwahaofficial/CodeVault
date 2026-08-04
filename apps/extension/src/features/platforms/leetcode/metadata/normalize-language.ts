@@ -1,27 +1,87 @@
 export function normalizeLanguage(
-  language: string
-) {
+  language: string,
+): string {
 
   const value =
-    language.toLowerCase();
+    language
+      .trim()
+      .toLowerCase();
 
 
-  if(value.includes("java"))
-    return "Java";
+
+  if (value.includes("java")) {
+
+    return "java";
+
+  }
 
 
-  if(value.includes("python"))
-    return "Python";
+
+  if (value.includes("python")) {
+
+    return "python";
+
+  }
 
 
-  if(value.includes("c++"))
-    return "Cpp";
+
+  if (
+    value.includes("c++") ||
+    value.includes("cpp")
+  ) {
+
+    return "cpp";
+
+  }
 
 
-  if(value.includes("javascript"))
-    return "JavaScript";
+
+  if (
+    value.includes("javascript") ||
+    value.includes("js")
+  ) {
+
+    return "javascript";
+
+  }
 
 
-  return language;
+
+  if (
+    value.includes("typescript") ||
+    value.includes("ts")
+  ) {
+
+    return "typescript";
+
+  }
+
+
+
+  if (value.includes("go")) {
+
+    return "go";
+
+  }
+
+
+
+  if (value.includes("rust")) {
+
+    return "rust";
+
+  }
+
+
+
+  if (value.includes("c")) {
+
+    return "c";
+
+  }
+
+
+
+  return "unknown";
 
 }

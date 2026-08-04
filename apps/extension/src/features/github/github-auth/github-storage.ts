@@ -6,9 +6,13 @@ export interface GithubSettings {
 
   token: string;
 
+  branch: string;
+
 }
 
+
 const STORAGE_KEY = "github_settings";
+
 
 export async function saveGithubSettings(
   settings: GithubSettings
@@ -22,6 +26,7 @@ export async function saveGithubSettings(
 
 }
 
+
 export async function getGithubSettings()
 : Promise<GithubSettings | null> {
 
@@ -30,12 +35,15 @@ export async function getGithubSettings()
       STORAGE_KEY
     );
 
+
   const settings =
     result[STORAGE_KEY] as GithubSettings | undefined;
+
 
   return settings ?? null;
 
 }
+
 
 export async function clearGithubSettings() {
 
@@ -45,17 +53,20 @@ export async function clearGithubSettings() {
 
 }
 
+
 /**
- * Updates only the repository information
- * while keeping the existing token.
+ * Updates repository information
+ * while keeping existing token and branch.
  */
 export async function saveSelectedRepository(
   owner: string,
-  repo: string
+  repo: string,
+  branch: string,
 ) {
 
   const settings =
     await getGithubSettings();
+
 
   if (!settings) {
 
@@ -65,6 +76,7 @@ export async function saveSelectedRepository(
 
   }
 
+
   await saveGithubSettings({
 
     ...settings,
@@ -72,6 +84,8 @@ export async function saveSelectedRepository(
     owner,
 
     repo,
+
+    branch,
 
   });
 

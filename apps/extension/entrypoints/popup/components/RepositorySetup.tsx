@@ -1,5 +1,22 @@
-import { useState } from "react";
-import { createRepository } from "../../../src/features/github/repository/repository-service";
+import { useEffect, useState } from "react";
+
+import {
+  createRepository,
+  loadRepositories,
+} from "../../../src/features/github/repository/repository-service";
+
+import {
+  saveSelectedRepository,
+} from "../../../src/features/github/github-auth/github-storage";
+
+import {
+  getGithubUser,
+} from "../../../src/features/github/api/github-user";
+
+import type {
+  GithubRepository,
+} from "../../../src/features/github/api/github-create-repository";
+
 
 interface RepositorySetupProps {
 
@@ -7,75 +24,215 @@ interface RepositorySetupProps {
 
 }
 
+
+
 export default function RepositorySetup({
   onRepositoryConfigured,
 }: RepositorySetupProps) {
 
+
   const [mode, setMode] =
     useState<"create" | "existing">("create");
+
 
   const [repositoryName, setRepositoryName] =
     useState("codevault-solutions");
 
+
+  const [repositories, setRepositories] =
+    useState<GithubRepository[]>([]);
+
+
+  const [selectedRepository, setSelectedRepository] =
+    useState("");
+
+
+  const [username, setUsername] =
+    useState("");
+
+
   const [loading, setLoading] =
     useState(false);
 
- const username =
-    "vivekkushwahaofficial"; 
 
-async function handleContinue() {
 
-  try {
+  useEffect(() => {
+
+    async function fetchUser() {
+
+      try {
+
+        const user =
+          await getGithubUser();
+
+
+        setUsername(
+          user.login
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load GitHub user",
+          error,
+        );
+
+      }
+
+    }
+
+
+    fetchUser();
+
+
+  }, []);
+
+
+
+
+  useEffect(() => {
+
+    async function fetchRepositories() {
+
+      try {
+
+        const result =
+          await loadRepositories();
+
+
+        setRepositories(result);
+
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load repositories",
+          error,
+        );
+
+      }
+
+    }
+
 
     if (mode === "existing") {
 
-      alert(
-        "Existing repository feature coming next."
-      );
-
-      return;
+      fetchRepositories();
 
     }
 
-    setLoading(true);
 
-    const repository =
-      await createRepository({
+  }, [mode]);
 
-        name: repositoryName,
 
-        description:
-          "Repository created by CodeVault",
 
-        private: true,
 
-      });
 
-    console.log(repository);
+  async function handleContinue() {
 
-    onRepositoryConfigured();
 
-  } catch (error) {
+    try {
 
-    console.error(error);
+      setLoading(true);
 
-    if (error instanceof Error) {
 
-      alert(error.message);
 
-    } else {
+      if (mode === "existing") {
 
-      alert("Unknown error");
+
+        const repository =
+          repositories.find(
+            (repo) =>
+              repo.name === selectedRepository
+          );
+
+
+
+        if (!repository) {
+
+          throw new Error(
+            "Please select a repository."
+          );
+
+        }
+
+
+
+        await saveSelectedRepository(
+
+          repository.owner.login,
+
+          repository.name,
+
+          repository.default_branch,
+
+        );
+
+
+
+        onRepositoryConfigured();
+
+        return;
+
+      }
+
+
+
+
+
+      const repository =
+        await createRepository({
+
+          name: repositoryName,
+
+          description:
+            "Repository created by CodeVault",
+
+          private: true,
+
+        });
+
+
+
+      console.log(repository);
+
+
+
+      onRepositoryConfigured();
+
+
+
+    } catch (error) {
+
+
+      console.error(error);
+
+
+
+      if (error instanceof Error) {
+
+        alert(error.message);
+
+      } else {
+
+        alert("Unknown error");
+
+      }
+
+
+
+    } finally {
+
+      setLoading(false);
 
     }
-
-  } finally {
-
-    setLoading(false);
 
   }
 
-}
+
+
+
 
   return (
 
@@ -87,273 +244,210 @@ async function handleContinue() {
       }}
     >
 
-      <h2
-        style={{
-          margin: 0,
-        }}
-      >
+
+      <h2>
         🚀 Welcome to CodeVault
       </h2>
 
+
+
       <p
         style={{
-          marginTop: "12px",
-          marginBottom: "4px",
-          fontSize: "13px",
-          color: "#888",
+          color:"#888",
         }}
       >
         Connected as
       </p>
 
-      <p
+
+
+      <strong
         style={{
-          margin: 0,
-          marginBottom: "20px",
-          color: "#22c55e",
-          fontWeight: "bold",
+          color:"#22c55e",
         }}
       >
-        {username} ✅
-      </p>
+
+        {username || "Loading..."} ✅
+
+      </strong>
+
+
+
+
 
       <div
-        onClick={() => setMode("create")}
         style={{
-          border:
-            mode === "create"
-              ? "2px solid #2563eb"
-              : "1px solid #444",
-          borderRadius: "12px",
-          padding: "16px",
-          marginBottom: "15px",
-          cursor: "pointer",
-          background:
-            mode === "create"
-              ? "#eff6ff"
-              : "#2a2a2a",
+          marginTop:"20px",
         }}
       >
 
-        <div
+
+        <button
+          onClick={() => setMode("create")}
+        >
+
+          📦 Create New Repository
+
+        </button>
+
+
+
+        <button
+          onClick={() => setMode("existing")}
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            marginLeft:"10px",
           }}
         >
 
-          <strong
-            style={{
-              color:
-                mode === "create"
-                  ? "#1d4ed8"
-                  : "#ffffff",
-            }}
-          >
-            📦 Create New Repository
-          </strong>
+          🔗 Existing Repository
 
-          {mode === "create" && (
-            <span
-              style={{
-                color: "#2563eb",
-                fontWeight: "bold",
-              }}
-            >
-              ✓
-            </span>
-          )}
+        </button>
 
-        </div>
-
-        <p
-          style={{
-            marginTop: "10px",
-            marginBottom: 0,
-            color:
-              mode === "create"
-                ? "#444"
-                : "#cfcfcf",
-            fontSize: "13px",
-          }}
-        >
-          Create a dedicated GitHub repository
-          for your coding solutions.
-        </p>
 
       </div>
 
-      <div
-        onClick={() => setMode("existing")}
-        style={{
-          border:
-            mode === "existing"
-              ? "2px solid #2563eb"
-              : "1px solid #444",
-          borderRadius: "12px",
-          padding: "16px",
-          marginBottom: "20px",
-          cursor: "pointer",
-          background:
-            mode === "existing"
-              ? "#eff6ff"
-              : "#2a2a2a",
-        }}
-      >
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
 
-          <strong
-            style={{
-              color:
-                mode === "existing"
-                  ? "#1d4ed8"
-                  : "#ffffff",
-            }}
-          >
-            🔗 Use Existing Repository
-          </strong>
 
-          {mode === "existing" && (
-            <span
-              style={{
-                color: "#2563eb",
-                fontWeight: "bold",
-              }}
-            >
-              ✓
-            </span>
-          )}
-
-        </div>
-
-        <p
-          style={{
-            marginTop: "10px",
-            marginBottom: 0,
-            color:
-              mode === "existing"
-                ? "#444"
-                : "#cfcfcf",
-            fontSize: "13px",
-          }}
-        >
-          Connect one of your existing GitHub repositories.
-        </p>
-
-      </div>
 
       {mode === "create" && (
 
         <div
           style={{
-            marginBottom: "20px",
+            marginTop:"20px",
           }}
         >
 
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "bold",
-            }}
-          >
+          <label>
             Repository Name
           </label>
 
+
           <input
-            type="text"
+
             value={repositoryName}
+
             onChange={(event) =>
-              setRepositoryName(event.target.value)
+              setRepositoryName(
+                event.target.value
+              )
             }
+
+
             style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "8px",
-              border: "1px solid #555",
-              boxSizing: "border-box",
+              width:"100%",
+              padding:"10px",
             }}
+
           />
+
 
         </div>
 
       )}
+
+
+
+
+
+
 
       {mode === "existing" && (
 
         <div
           style={{
-            marginBottom: "20px",
+            marginTop:"20px",
           }}
         >
 
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "bold",
-            }}
-          >
+          <label>
             Select Repository
           </label>
 
+
+
           <select
+
+            value={selectedRepository}
+
+            onChange={(event) =>
+              setSelectedRepository(
+                event.target.value
+              )
+            }
+
+
             style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "8px",
-              border: "1px solid #555",
-              boxSizing: "border-box",
+              width:"100%",
+              padding:"10px",
             }}
+
           >
 
-            <option>CodeVault</option>
-            <option>LeetCode</option>
-            <option>DSA</option>
+
+            <option value="">
+              Select repository
+            </option>
+
+
+
+            {repositories.map(
+              (repo) => (
+
+                <option
+                  key={repo.id}
+                  value={repo.name}
+                >
+
+                  {repo.name}
+
+                </option>
+
+              )
+            )}
+
 
           </select>
+
 
         </div>
 
       )}
 
+
+
+
+
+
+
       <button
+
         onClick={handleContinue}
+
         disabled={loading}
+
+
         style={{
-          width: "100%",
-          padding: "12px",
-          border: "none",
-          borderRadius: "10px",
-          background: "#2563eb",
-          color: "white",
-          fontWeight: "bold",
-          cursor:
-            loading
-              ? "not-allowed"
-              : "pointer",
-          opacity:
-            loading
-              ? 0.7
-              : 1,
+
+          marginTop:"20px",
+
+          width:"100%",
+
+          padding:"12px",
+
         }}
+
       >
 
         {loading
           ? "Please wait..."
-          : mode === "create"
-            ? "Create Repository →"
-            : "Connect Repository →"}
+          : "Continue →"
+        }
+
 
       </button>
+
+
 
     </div>
 

@@ -1,37 +1,25 @@
 export function extractLeetCodeLanguage(): string {
 
-  const languageButton =
+
+  const editor =
     document.querySelector(
-      "button[data-cy='lang-select']"
+      "button[aria-haspopup='listbox']",
     );
 
 
-  if(languageButton?.textContent) {
+  const text =
+    editor?.textContent?.trim();
 
-    return languageButton.textContent.trim();
+
+
+  if(text) {
+
+    return text;
 
   }
 
 
-  const buttons =
-    Array.from(
-      document.querySelectorAll("button")
-    );
 
-
-  const language =
-    buttons.find(
-      button =>
-        button.textContent?.includes("Java") ||
-        button.textContent?.includes("Python") ||
-        button.textContent?.includes("C++")
-    );
-
-
-  return (
-    language?.textContent?.trim()
-    ||
-    "Unknown"
-  );
+  return "Java";
 
 }
