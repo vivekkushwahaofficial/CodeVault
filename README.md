@@ -430,21 +430,17 @@ cd apps/backend
 
 - ✅ LeetCode
 - ✅ Java
+- ✅ Python
+- ✅ C++
+- ✅ JavaScript
+- ✅ Go
+- ✅ Rust
 - ✅ GitHub OAuth
 - ✅ Automatic GitHub Sync
 - ✅ README Generation
 - ✅ Metadata Extraction
 - ✅ Problem Statement Extraction
 - ✅ Duplicate Detection
-
-## Planned
-
-- ⏳ Python
-- ⏳ C++
-- ⏳ JavaScript
-- ⏳ Go
-- ⏳ Rust
-
 ---
 
 # 🚧 Roadmap
