@@ -1,90 +1,344 @@
 # 🚀 CodeVault
 
-> Automatically extract, organize, and sync your coding solutions from coding platforms to GitHub.
+> Automatically detect, organize, and sync your accepted coding solutions from coding platforms to GitHub.
 
-![CodeVault](https://img.shields.io/badge/CodeVault-v1.0.0-blue)
+![Version](https://img.shields.io/badge/version-v0.1.0-blue)
+![Status](https://img.shields.io/badge/status-MVP-success)
+![Platform](https://img.shields.io/badge/platform-LeetCode-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
 # 📌 Overview
 
-CodeVault is an open-source browser extension that helps developers automatically maintain their coding journey.
+CodeVault is an open-source browser extension that automatically captures your accepted coding solutions, organizes them into a clean repository structure, and synchronizes everything to GitHub.
 
-Solve a coding problem → CodeVault detects it → Extracts your solution → Organizes metadata → Syncs it with GitHub.
+Instead of manually copying solutions, creating folders, writing README files, and committing changes, CodeVault handles the complete workflow automatically.
 
-No manual copy-paste.  
-No manual repository management.
+Current MVP supports:
+
+- ✅ LeetCode
+- ✅ GitHub OAuth Authentication
+- ✅ Automatic Repository Sync
+- ✅ Automatic README Generation
+- ✅ Duplicate Submission Detection
+
+More platforms and advanced features are planned in future releases.
 
 ---
 
-# ✨ Features (v1.0.0)
+# ✨ Features
 
-## ✅ LeetCode Solution Extraction
+## ✅ Automatic LeetCode Detection
 
-Automatically detects accepted LeetCode solutions and extracts submitted code.
+CodeVault automatically detects when your LeetCode submission is accepted.
+
+No buttons.
+No manual actions.
+
+Simply solve the problem and CodeVault does the rest.
+
+---
+
+## ✅ Solution Extraction
+
+Automatically extracts your submitted solution from the accepted submission page.
 
 Currently supported:
 
 - Java
 
-More programming languages will be added in future releases.
-
----
-
-## ✅ Automatic GitHub Sync
-
-CodeVault automatically creates solution files inside your GitHub repository.
-
-Example:
-
-```
-Your Repository
-
-LeetCode
-│
-└── Easy
-    │
-    └── Two-Sum.java
-```
-
-Every solution is committed with a meaningful commit message.
-
-Example:
-
-```
-feat(leetcode): Add Two Sum
-```
+Support for Python, C++, JavaScript, Go, Rust, and more is planned.
 
 ---
 
 ## ✅ Problem Metadata Extraction
 
-Automatically collects:
+Automatically collects metadata including:
 
-- Problem name
+- Problem Title
 - Difficulty
 - Platform
-- Programming language
-- Solution content
-- Solved date
+- Programming Language
+- Submission URL
 
 ---
 
-## ✅ Language Detection
+## ✅ Problem Statement Extraction
 
-Detects programming language and creates the correct file extension.
+Automatically extracts the complete problem statement and stores it inside a beautifully formatted README.md.
+
+---
+
+## ✅ Automatic README Generation
+
+Each solved problem gets its own README.
 
 Example:
 
-```
-Java        → Two-Sum.java
-Python      → Two-Sum.py
-C++         → Two-Sum.cpp
-JavaScript  → Two-Sum.js
+```text
+Interleaving String
+
+Difficulty: Medium
+
+Problem Statement
+
+...
+
+Approach
+
+...
+
+Complexity
+
+...
 ```
 
-(Currently Java support is available.)
+---
+
+## ✅ GitHub OAuth Authentication
+
+Secure authentication using GitHub OAuth.
+
+No Personal Access Token (PAT) is required.
+
+---
+
+## ✅ Automatic GitHub Sync
+
+After every accepted submission, CodeVault automatically:
+
+- Creates folders
+- Generates README.md
+- Saves your solution
+- Creates a Git commit
+- Pushes everything to GitHub
+
+Example commit message:
+
+```text
+feat(leetcode): Add Two Sum
+```
+
+---
+
+## ✅ Duplicate Detection
+
+CodeVault generates a unique fingerprint for every accepted submission.
+
+Previously uploaded submissions are automatically skipped to prevent duplicate commits.
+
+---
+
+## ✅ Organized Repository Structure
+
+Solutions are automatically organized by:
+
+- Platform
+- Difficulty
+- Problem Name
+
+Example:
+
+```text
+Repository
+│
+└── LeetCode
+    │
+    ├── easy
+    │   └── Two-Sum
+    │       ├── README.md
+    │       └── Solution.java
+    │
+    └── medium
+        └── Interleaving-String
+            ├── README.md
+            └── Solution.java
+```
+
+---
+
+# ⚙️ How It Works
+
+```text
+Solve Coding Problem
+
+        │
+
+        ▼
+
+Submit Accepted Solution
+
+        │
+
+        ▼
+
+CodeVault Detects Submission
+
+        │
+
+        ▼
+
+Extract Solution
+
+        │
+
+        ▼
+
+Extract Metadata
+
+        │
+
+        ▼
+
+Extract Problem Statement
+
+        │
+
+        ▼
+
+Generate README
+
+        │
+
+        ▼
+
+Build Solution Package
+
+        │
+
+        ▼
+
+Authenticate with GitHub
+
+        │
+
+        ▼
+
+Commit Files
+
+        │
+
+        ▼
+
+Push to Repository
+```
+
+---
+
+# 🏗️ Architecture
+
+```text
+LeetCode
+
+      │
+
+      ▼
+
+Content Script
+
+      │
+
+      ▼
+
+Metadata Extractor
+
+      │
+
+      ▼
+
+Solution Extractor
+
+      │
+
+      ▼
+
+Problem Statement Extractor
+
+      │
+
+      ▼
+
+README Generator
+
+      │
+
+      ▼
+
+Background Service
+
+      │
+
+      ▼
+
+Spring Boot Backend
+
+      │
+
+      ▼
+
+GitHub REST API
+
+      │
+
+      ▼
+
+GitHub Repository
+```
+
+---
+
+# 🛠️ Tech Stack
+
+## Browser Extension
+
+- TypeScript
+- React
+- WXT Framework
+- Chrome Extension Manifest V3
+
+## Backend
+
+- Java
+- Spring Boot
+- Spring Security
+- OAuth2
+- GitHub REST API
+
+## Development Tools
+
+- pnpm
+- TurboRepo
+- Vite
+- Git
+
+---
+
+# 📁 Project Structure
+
+```text
+CodeVault
+│
+├── apps
+│   ├── backend
+│   │
+│   └── extension
+│       ├── entrypoints
+│       └── src
+│           ├── features
+│           │   ├── github
+│           │   ├── platforms
+│           │   ├── extractor
+│           │   ├── sync
+│           │   └── settings
+│           │
+│           ├── shared
+│           └── core
+│
+├── packages
+│
+└── docs
+```
 
 ---
 
@@ -92,7 +346,7 @@ JavaScript  → Two-Sum.js
 
 ## Chrome Extension
 
-The extension will be available through:
+Coming soon on:
 
 - Chrome Web Store
 - Microsoft Edge Add-ons
@@ -102,212 +356,205 @@ The extension will be available through:
 
 ## Manual Installation
 
-For now, you can install CodeVault manually:
-
-1. Download the latest release from GitHub Releases.
-
-2. Extract the downloaded file.
-
-3. Open Chrome:
-
-```
-chrome://extensions
-```
-
-4. Enable:
-
-```
-Developer Mode
-```
-
-5. Click:
-
-```
-Load unpacked
-```
-
-6. Select the CodeVault extension folder.
-
----
-
-# ⚙️ How It Works
-
-```
-Solve Coding Problem
-
-        ↓
-
-Submit Accepted Solution
-
-        ↓
-
-CodeVault Detects Solution
-
-        ↓
-
-Extract Code + Metadata
-
-        ↓
-
-GitHub API Sync
-
-        ↓
-
-Solution Saved Automatically
-```
-
----
-
-# 🏗️ Architecture
-
-```
-Coding Platform
-
-        ↓
-
-CodeVault Extension
-
-        ↓
-
-Solution Extractor
-
-        ↓
-
-Metadata Processor
-
-        ↓
-
-GitHub Client
-
-        ↓
-
-Your Repository
-```
-
----
-
-# 🛠️ Tech Stack
-
-## Extension
-
-- TypeScript
-- React
-- WXT Framework
-- Chrome Extension Manifest V3
-
-## APIs
-
-- GitHub REST API
-
-## Development
-
-- pnpm
-- Vite
-
----
-
-# 📁 Project Structure
-
-```
-CodeVault
-
-├── apps
-│   └── extension
-│       ├── entrypoints
-│       └── src
-│           ├── features
-│           │   ├── github
-│           │   ├── platforms
-│           │   └── settings
-│
-├── docs
-│
-└── packages
-```
-
----
-
-# 🛠️ Development Setup
-
-For contributors:
-
-Clone the repository:
+1. Clone the repository.
 
 ```bash
 git clone https://github.com/vivekkushwahaofficial/CodeVault.git
 ```
 
-Install dependencies:
+2. Install dependencies.
 
 ```bash
 pnpm install
 ```
 
-Build extension:
+3. Build the extension.
 
 ```bash
 pnpm --dir apps/extension build
 ```
 
+4. Open Chrome.
+
+```text
+chrome://extensions
+```
+
+5. Enable Developer Mode.
+
+6. Click **Load unpacked**.
+
+7. Select the generated extension folder.
+
+---
+
+# 🛠️ Development Setup
+
+Clone the repository.
+
+```bash
+git clone https://github.com/vivekkushwahaofficial/CodeVault.git
+```
+
+Install dependencies.
+
+```bash
+pnpm install
+```
+
+Run the extension.
+
+```bash
+pnpm --dir apps/extension dev
+```
+
+Build the extension.
+
+```bash
+pnpm --dir apps/extension build
+```
+
+Run the backend.
+
+```bash
+cd apps/backend
+
+./mvnw spring-boot:run
+```
+
+---
+
+# 📌 Current MVP Status
+
+## Supported
+
+- ✅ LeetCode
+- ✅ Java
+- ✅ GitHub OAuth
+- ✅ Automatic GitHub Sync
+- ✅ README Generation
+- ✅ Metadata Extraction
+- ✅ Problem Statement Extraction
+- ✅ Duplicate Detection
+
+## Planned
+
+- ⏳ Python
+- ⏳ C++
+- ⏳ JavaScript
+- ⏳ Go
+- ⏳ Rust
+
 ---
 
 # 🚧 Roadmap
 
-## v1.1
+## v0.2
 
-- More programming languages
-- Better settings management
-- Multiple repository support
-- Improved error handling
+- GeeksforGeeks Support
+- Multiple Programming Languages
+- Better Settings Management
+- Repository Configuration
 
 ---
 
-## Future
+## v0.3
 
-- Multiple coding platform support
-- AI-powered solution classification
-- Pattern detection
-- Analytics dashboard
-- Revision system
-- Developer portfolio generation
+- HackerRank Support
+- Codeforces Support
+- CodeChef Support
+- Coding Ninjas Support
+
+---
+
+## v0.4
+
+- AI Pattern Detection
+- Automatic Topic Classification
+- Analytics Dashboard
+- Statistics Generator
+
+---
+
+## v0.5
+
+- Multiple GitHub Accounts
+- Multiple Repository Modes
+- Offline Sync
+- Background Queue
+
+---
+
+## v1.0
+
+- Multi-platform Solution Manager
+- AI-powered Insights
+- Portfolio Website
+- Revision Planner
+- Browser Store Release
 
 ---
 
 # 🤝 Contributing
 
-CodeVault is open source and contributions are welcome.
+Contributions are always welcome.
 
-You can contribute through:
+You can contribute by:
 
-- Bug reports
-- Feature requests
-- Pull requests
-- Documentation improvements
+- Reporting bugs
+- Suggesting features
+- Improving documentation
+- Opening pull requests
 
-Steps:
+Create a new branch.
 
 ```bash
-git checkout -b feature/new-feature
-
-git commit -m "feat: add new feature"
-
-git push origin feature/new-feature
+git checkout -b feature/my-feature
 ```
 
-Then create a Pull Request.
+Commit your changes.
+
+```bash
+git commit -m "feat: add new feature"
+```
+
+Push your branch.
+
+```bash
+git push origin feature/my-feature
+```
+
+Finally, open a Pull Request.
 
 ---
 
 # 📄 License
 
-CodeVault is licensed under the MIT License.
+This project is licensed under the MIT License.
 
 ---
 
 # ⭐ Support
 
-If you find CodeVault useful, consider giving the repository a star.
+If you find CodeVault useful, please consider giving the repository a ⭐.
+
+It helps the project grow and motivates future development.
 
 ---
 
-Built with ❤️ for developers who want their coding journey organized automatically.
+# 🌟 Vision
+
+CodeVault aims to become the ultimate coding solution management platform.
+
+In the future, developers will be able to:
+
+- Automatically sync solutions from multiple coding platforms
+- Organize solutions by difficulty, topic, pattern, and language
+- Track coding progress and analytics
+- Generate developer portfolios
+- Receive AI-powered insights and revision plans
+- Maintain a complete coding journey with zero manual effort
+
+---
+
+Built with ❤️ for developers who love solving problems, not managing repositories.
