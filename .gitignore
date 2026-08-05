@@ -44,3 +44,6 @@ apps/extension/.output/
 
 apps/backend/.env
 .env
+
+# Chrome extension private key
+apps/extension/key.pem
