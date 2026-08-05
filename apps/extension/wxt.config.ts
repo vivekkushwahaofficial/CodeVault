@@ -15,6 +15,9 @@ export default defineConfig({
     description:
       "Automatically extract and sync coding solutions to GitHub.",
 
+    // Add your public key here
+    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvaLlfmE+X4kGdZNCsyBJLuN6XPzAGlfCW4hsUbUCYQahqtofVpy/vOCjuwP5uLdtHoip7JanTbgcCvmD5HlmMRUojL2cy6302Kl+7YrmPdQcqZhNxu+KWfemuzJ4yx+ohY+Sz9abSda0ZGvCF6bYFHR0j4c3h3AAUYkJOmLrVHF8qa52O6YbsN/51oCsiwVBgYaiu9/JRHHIbpRD20VJHgmy8EfRUjxuTtUJsDenDWKX+eLpAG8MVt/osKxWf/en1LkEKmDM7/9K6Q0LJUJ6gVkAiicDk111sBtlOkRhZ3+XU0MV/seU+263drvFkM38I6897eadc6L3wUUsZuCD1QIDAQAB",
+
     permissions: [
       "identity",
       "storage",
@@ -23,6 +26,7 @@ export default defineConfig({
     host_permissions: [
       "https://github.com/*",
       "https://api.github.com/*",
+      "https://codevault-backend-me91.onrender.com/*",
     ],
 
     icons: {
