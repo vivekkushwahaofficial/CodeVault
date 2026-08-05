@@ -33,7 +33,11 @@ public class GithubOAuthService {
 
     public GithubTokenResponse exchangeCode(String code) {
 
-        logger.info("Exchanging GitHub authorization code.");
+        logger.info("========================================");
+        logger.info("Exchanging GitHub authorization code...");
+        logger.info("GitHub Client ID: {}", githubProperties.getClientId());
+        logger.info("GitHub Redirect URI: {}", githubProperties.getRedirectUri());
+        logger.info("========================================");
 
         MultiValueMap<String, String> formData =
                 new LinkedMultiValueMap<>();
