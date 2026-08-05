@@ -3,7 +3,7 @@ export async function exchangeGithubCode(
 ) {
 
   const response = await fetch(
-    "http://localhost:8080/api/github/oauth/token",
+    "https://codevault-backend-me91.onrender.com/api/github/oauth/token",
     {
       method: "POST",
 

@@ -72,6 +72,8 @@ export async function authenticateGithub() {
 
       repo: "",
 
+      branch: "main",
+
       token: accessToken,
 
     });
