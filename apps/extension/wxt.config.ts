@@ -15,8 +15,8 @@ export default defineConfig({
     description:
       "Automatically extract and sync coding solutions to GitHub.",
 
-    // Add your public key here
-    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvaLlfmE+X4kGdZNCsyBJLuN6XPzAGlfCW4hsUbUCYQahqtofVpy/vOCjuwP5uLdtHoip7JanTbgcCvmD5HlmMRUojL2cy6302Kl+7YrmPdQcqZhNxu+KWfemuzJ4yx+ohY+Sz9abSda0ZGvCF6bYFHR0j4c3h3AAUYkJOmLrVHF8qa52O6YbsN/51oCsiwVBgYaiu9/JRHHIbpRD20VJHgmy8EfRUjxuTtUJsDenDWKX+eLpAG8MVt/osKxWf/en1LkEKmDM7/9K6Q0LJUJ6gVkAiicDk111sBtlOkRhZ3+XU0MV/seU+263drvFkM38I6897eadc6L3wUUsZuCD1QIDAQAB",
+    // ✅ Correct public key generated from chrome-mv3-dev.pem
+    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypcjscEcKDcypZLj0Z79vMDQU38YLEqGOrZNMfI9RsdpladRCUvLEdCjSGosDyNCOtn1VT1bedAZ/Ficjaf0566H2Rdm5olPdx4wdoflSBwm0amjDKssueoQEjOlKAbW/fvFJutZHI+5Q9QODhTQHtuZDV+FT+mgAdVib2k+Qmu8nvwXVZ+fl+QcSldG7RnNIXAd49gwVZur03LojXgWImwDO5lQ0gntosuG/25UfGFn7U3p2mWolfOWSPuDeyfjbPA5Rl5w5Jb4fpBRzwmQHbZWOijaIdxccWTRs/mAGwkkFBTmxTL5fghY1dwiKUgg+dOPYQs0MQNvbP3RPkzqGQIDAQAB",
 
     permissions: [
       "identity",

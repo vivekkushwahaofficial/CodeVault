@@ -1,6 +1,6 @@
 export async function exchangeGithubCode(
   code: string
-) {
+): Promise<string> {
 
   const response = await fetch(
     "https://codevault-backend-me91.onrender.com/api/github/oauth/token",
@@ -14,23 +14,21 @@ export async function exchangeGithubCode(
       body: JSON.stringify({
         code,
       }),
-
     }
   );
 
   if (!response.ok) {
 
+    const errorMessage =
+      await response.text();
+
     throw new Error(
-      "Failed to exchange GitHub authorization code."
+      errorMessage || "Failed to exchange GitHub authorization code."
     );
 
   }
 
-  const text =
-    await response.text();
-
-  const data =
-    JSON.parse(text);
+  const data = await response.json();
 
   const accessToken =
     data.accessToken ??
@@ -39,7 +37,7 @@ export async function exchangeGithubCode(
   if (!accessToken) {
 
     throw new Error(
-      "Access token not received."
+      "Access token not received from backend."
     );
 
   }

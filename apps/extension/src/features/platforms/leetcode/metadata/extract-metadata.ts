@@ -1,33 +1,26 @@
 import type { ProblemMetadata } from "../../shared/problem-metadata";
 import { PlatformType } from "../../shared/platform-type";
 
-
 export function extractMetadata(
   document: Document
 ): ProblemMetadata {
 
+  const titleLink =
+    document.querySelector("a[href^='/problems/']");
 
   const rawTitle =
-    document
-      .querySelector("div.text-title-large a")
-      ?.textContent
-      ?.trim()
-      ?? "";
-
+    titleLink?.textContent?.trim() ?? "";
 
   const title =
     rawTitle.replace(/^\d+\.\s*/, "");
 
-
-
   const difficulty =
-    document
-      .querySelector('[class*="text-difficulty-"]')
-      ?.textContent
-      ?.trim()
-      ?? "";
-
-
+    (
+      document.querySelector('[class*="text-difficulty-"]') ??
+      document.querySelector("div[class*='text-olive']") ??
+      document.querySelector("div[class*='text-yellow']") ??
+      document.querySelector("div[class*='text-pink']")
+    )?.textContent?.trim() ?? "";
 
   const slug =
     new URL(window.location.href)
@@ -35,17 +28,16 @@ export function extractMetadata(
       .split("/")[2]
       ?? "";
 
-
-
   const url =
     `${window.location.origin}/problems/${slug}/`;
 
-
+  // 👇 Add these two lines HERE
+  console.log("[Metadata] Title:", title);
+  console.log("[Metadata] Difficulty:", difficulty);
 
   return {
 
-    platform:
-      PlatformType.LEETCODE,
+    platform: PlatformType.LEETCODE,
 
     title,
 
@@ -53,13 +45,11 @@ export function extractMetadata(
 
     difficulty,
 
-    language:
-      "",
+    language: "",
 
     url,
 
-    solvedAt:
-      new Date(),
+    solvedAt: new Date(),
 
   };
 
