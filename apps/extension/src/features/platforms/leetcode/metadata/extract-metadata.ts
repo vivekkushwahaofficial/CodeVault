@@ -5,49 +5,30 @@ export function extractMetadata(
   document: Document
 ): ProblemMetadata {
 
-  const titleLink =
-    document.querySelector("a[href^='/problems/']");
+  const nextData = (window as any).__NEXT_DATA__;
 
-  const rawTitle =
-    titleLink?.textContent?.trim() ?? "";
+  const question =
+    nextData?.props?.pageProps?.dehydratedState?.queries
+      ?.find((q: any) => q.queryKey?.[0] === "questionDetail")
+      ?.state?.data?.question;
 
-  const title =
-    rawTitle.replace(/^\d+\.\s*/, "");
-
-  const difficulty =
-    (
-      document.querySelector('[class*="text-difficulty-"]') ??
-      document.querySelector("div[class*='text-olive']") ??
-      document.querySelector("div[class*='text-yellow']") ??
-      document.querySelector("div[class*='text-pink']")
-    )?.textContent?.trim() ?? "";
-
-  const slug =
-    new URL(window.location.href)
-      .pathname
-      .split("/")[2]
-      ?? "";
-
-  const url =
-    `${window.location.origin}/problems/${slug}/`;
-
-  // 👇 Add these two lines HERE
-  console.log("[Metadata] Title:", title);
-  console.log("[Metadata] Difficulty:", difficulty);
+  if (!question) {
+    throw new Error("Unable to extract LeetCode metadata.");
+  }
 
   return {
 
     platform: PlatformType.LEETCODE,
 
-    title,
+    title: question.title,
 
-    slug,
+    slug: question.titleSlug,
 
-    difficulty,
+    difficulty: question.difficulty,
 
     language: "",
 
-    url,
+    url: `${window.location.origin}/problems/${question.titleSlug}/`,
 
     solvedAt: new Date(),
 
