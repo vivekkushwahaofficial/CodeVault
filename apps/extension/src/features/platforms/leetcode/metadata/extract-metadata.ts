@@ -1,19 +1,45 @@
 import type { ProblemMetadata } from "../../shared/problem-metadata";
 import { PlatformType } from "../../shared/platform-type";
 
+/**
+ * Extracts normalized metadata from the LeetCode submission page.
+ */
 export function extractMetadata(
-  document: Document
+  document: Document,
 ): ProblemMetadata {
 
-  const nextData = (window as any).__NEXT_DATA__;
+  const script =
+    document.getElementById("__NEXT_DATA__");
+
+  if (!script?.textContent) {
+    throw new Error("__NEXT_DATA__ not found");
+  }
+
+  const nextData =
+    JSON.parse(script.textContent);
+
+  const queries =
+    nextData.props?.pageProps?.dehydratedState?.queries;
+
+  if (!Array.isArray(queries)) {
+    throw new Error("Queries not found");
+  }
+
+  const questionQuery =
+    queries.find(
+      (query: any) =>
+        query.queryKey?.[0] === "questionDetail",
+    );
+
+  if (!questionQuery) {
+    throw new Error("questionDetail query not found");
+  }
 
   const question =
-    nextData?.props?.pageProps?.dehydratedState?.queries
-      ?.find((q: any) => q.queryKey?.[0] === "questionDetail")
-      ?.state?.data?.question;
+    questionQuery.state?.data?.question;
 
   if (!question) {
-    throw new Error("Unable to extract LeetCode metadata.");
+    throw new Error("Question metadata not found");
   }
 
   return {
@@ -24,11 +50,13 @@ export function extractMetadata(
 
     slug: question.titleSlug,
 
-    difficulty: question.difficulty,
+    difficulty:
+      question.difficulty.toLowerCase(),
 
+    // TODO: Extract from the submission page later
     language: "",
 
-    url: `${window.location.origin}/problems/${question.titleSlug}/`,
+    url: window.location.href,
 
     solvedAt: new Date(),
 
