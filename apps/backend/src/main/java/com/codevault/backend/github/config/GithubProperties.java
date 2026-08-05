@@ -17,6 +17,11 @@ public class GithubProperties {
      */
     private String clientSecret;
 
+    /**
+     * GitHub OAuth Redirect URI
+     */
+    private String redirectUri;
+
     public String getClientId() {
         return clientId;
     }
@@ -31,5 +36,13 @@ public class GithubProperties {
 
     public void setClientSecret(String clientSecret) {
         this.clientSecret = clientSecret;
+    }
+
+    public String getRedirectUri() {
+        return redirectUri;
+    }
+
+    public void setRedirectUri(String redirectUri) {
+        this.redirectUri = redirectUri;
     }
 }

@@ -1,5 +1,6 @@
 package com.codevault.backend.github.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,12 +25,13 @@ public class GithubOAuthController {
     }
 
     @PostMapping("/token")
-    public GithubTokenResponse exchangeToken(
+    public ResponseEntity<GithubTokenResponse> exchangeToken(
             @Valid @RequestBody GithubTokenRequest request
     ) {
 
-        return githubOAuthService.exchangeCode(
-                request.code()
-        );
+        GithubTokenResponse response =
+                githubOAuthService.exchangeCode(request.code());
+
+        return ResponseEntity.ok(response);
     }
 }
