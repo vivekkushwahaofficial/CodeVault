@@ -47,8 +47,10 @@ Automatically extracts your submitted solution from the accepted submission page
 Currently supported:
 
 - Java
+- Python
+- C++
 
-Support for Python, C++, JavaScript, Go, Rust, and more is planned.
+Support for JavaScript, Go, Rust, and more is planned.
 
 ---
 
