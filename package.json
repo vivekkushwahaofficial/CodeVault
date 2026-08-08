@@ -1,6 +1,6 @@
 {
   "name": "codevault",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "CodeVault - Automatic coding solution manager for LeetCode, GeeksforGeeks, and more.",
   "packageManager": "pnpm@10.26.2",
