@@ -10,9 +10,9 @@ export class PlatformFactory {
       return new LeetCodeAdapter();
     }
 
-    // if (host.includes("geeksforgeeks.org")) {
-    //   return new GfgAdapter();
-    // }
+    if (host.includes("geeksforgeeks.org")) {
+      return new GfgAdapter();
+    }
 
     throw new Error(`Unsupported platform: ${host}`);
   }

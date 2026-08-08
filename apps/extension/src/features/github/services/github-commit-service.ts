@@ -53,7 +53,11 @@ async function commitFile(
 
 
   const content =
-    btoa(file.content);
+    btoa(
+      unescape(
+        encodeURIComponent(file.content)
+      )
+    );
 
 
 

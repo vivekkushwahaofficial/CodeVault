@@ -2,70 +2,40 @@ import type { PlatformAdapter } from "../shared/platform-adapter";
 import type { ProblemMetadata } from "../shared/problem-metadata";
 import type { ProblemStatement } from "../shared/problem-statement";
 
-/**
- * Adapter for GeeksforGeeks.
- */
+import { isAcceptedSubmission } from "./detector/accepted-detector";
+import { extractMetadata } from "./metadata/extract-metadata";
+import { extractSolution } from "./solution/extract-solution";
+import { extractProblemStatement } from "./statement/extract-problem-statement";
+
 export class GfgAdapter implements PlatformAdapter {
 
-  /**
-   * Wait until the page is ready.
-   */
   async waitUntilReady(
-    document: Document
+    document: Document,
   ): Promise<void> {
-
     return;
-
   }
 
-  /**
-   * Returns true if an accepted submission is detected.
-   */
   isAcceptedSubmission(
-    document: Document
+    document: Document,
   ): boolean {
-
-    return document.body.innerText.includes("Correct");
-
+    return isAcceptedSubmission(document);
   }
 
-  /**
-   * Extract normalized metadata.
-   */
   async extractMetadata(
-    document: Document
+    document: Document,
   ): Promise<ProblemMetadata> {
-
-    throw new Error(
-      "extractMetadata() not implemented."
-    );
-
+    return extractMetadata(document);
   }
 
-  /**
-   * Extract submitted source code.
-   */
   async extractSolution(
-    document: Document
+    document: Document,
   ): Promise<string> {
-
-    throw new Error(
-      "extractSolution() not implemented."
-    );
-
+    return extractSolution(document);
   }
 
-  /**
-   * Extract the complete problem statement.
-   */
   async extractProblemStatement(
-    document: Document
+    document: Document,
   ): Promise<ProblemStatement> {
-
-    throw new Error(
-      "extractProblemStatement() not implemented."
-    );
-
+    return extractProblemStatement(document);
   }
-
 }
