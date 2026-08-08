@@ -1,8 +1,10 @@
 import {
   isAcceptedSubmission as detectAcceptedSubmission,
 } from "./detector/accepted-detector";
+
 import { extractMetadata } from "./metadata/extract-metadata";
 import { extractSolution } from "./solution/extract-solution";
+import { extractProblemStatement } from "./problem/extract-problem-statement";
 
 import type { PlatformAdapter } from "../shared/platform-adapter";
 import type { ProblemMetadata } from "../shared/problem-metadata";
@@ -14,11 +16,9 @@ import { waitForElement } from "../shared/wait/wait-for-element";
  * Adapter for LeetCode.
  */
 export class LeetCodeAdapter implements PlatformAdapter {
-
   async waitUntilReady(
-    document: Document
+    document: Document,
   ): Promise<void> {
-
     console.log("Waiting for submission result...");
 
     await waitForElement(
@@ -34,57 +34,29 @@ export class LeetCodeAdapter implements PlatformAdapter {
     );
 
     console.log("Problem title found");
-
   }
 
   isAcceptedSubmission(
-    document: Document
+    document: Document,
   ): boolean {
-
     return detectAcceptedSubmission(document);
-
   }
 
   async extractMetadata(
-    document: Document
+    document: Document,
   ): Promise<ProblemMetadata> {
-
     return extractMetadata(document);
-
   }
 
   async extractSolution(
-    document: Document
+    document: Document,
   ): Promise<string> {
-
     return extractSolution(document);
-
   }
 
   async extractProblemStatement(
-    document: Document
+    document: Document,
   ): Promise<ProblemStatement> {
-
-    const metadata =
-      await extractMetadata(document);
-
-    const description =
-      document.querySelector(
-        '[data-track-load="description_content"]'
-      );
-
-    return {
-
-      title: metadata.title,
-
-      difficulty: metadata.difficulty,
-
-      url: window.location.href,
-
-      html: description?.innerHTML ?? "",
-
-    };
-
+    return extractProblemStatement(document);
   }
-
 }
