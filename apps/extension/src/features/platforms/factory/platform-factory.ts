@@ -1,4 +1,5 @@
 import { GfgAdapter } from "../gfg/gfg-adapter";
+import { HackerRankAdapter } from "../hackerrank/hackerrank-adapter";
 import { LeetCodeAdapter } from "../leetcode/leetcode-adapter";
 import type { PlatformAdapter } from "../shared/platform-adapter";
 
@@ -12,6 +13,10 @@ export class PlatformFactory {
 
     if (host.includes("geeksforgeeks.org")) {
       return new GfgAdapter();
+    }
+
+    if (host.includes("hackerrank.com")) {
+      return new HackerRankAdapter();
     }
 
     throw new Error(`Unsupported platform: ${host}`);

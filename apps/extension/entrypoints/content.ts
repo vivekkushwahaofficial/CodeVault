@@ -1,4 +1,5 @@
 import { ContentOrchestrator } from "../src/features/content/content-orchestrator";
+import { setLatestSubmission } from "../src/features/platforms/hackerrank/submission/hackerrank-submission-store";
 
 export default defineContentScript({
   matches: [
@@ -6,21 +7,31 @@ export default defineContentScript({
     "*://*.leetcode.com/*",
     "*://geeksforgeeks.org/*",
     "*://*.geeksforgeeks.org/*",
+    "*://hackerrank.com/*",
+    "*://*.hackerrank.com/*",
   ],
 
   async main() {
-    console.log("[CodeVault] Content script initialized.");
+    console.log(
+      "[CodeVault] Content script initialized.",
+    );
 
-    const hostname = window.location.hostname;
+    const hostname =
+      window.location.hostname;
 
     // --------------------------------------------------
     // LeetCode
     // --------------------------------------------------
 
-    if (hostname.includes("leetcode.com")) {
-      await injectScript("/leetcode-main-world.js", {
-        keepInDom: true,
-      });
+    if (
+      hostname.includes("leetcode.com")
+    ) {
+      await injectScript(
+        "/leetcode-main-world.js",
+        {
+          keepInDom: true,
+        },
+      );
 
       console.log(
         "[CodeVault] Waiting for LeetCode submission...",
@@ -37,15 +48,21 @@ export default defineContentScript({
         return;
       }
 
-      submitButton.addEventListener("click", async () => {
-        console.log(
-          "[CodeVault] LeetCode Submit clicked. Checking result...",
-        );
+      submitButton.addEventListener(
+        "click",
+        async () => {
+          console.log(
+            "[CodeVault] LeetCode Submit clicked. Checking result...",
+          );
 
-        setTimeout(async () => {
-          await ContentOrchestrator.start();
-        }, 2000);
-      });
+          setTimeout(
+            async () => {
+              await ContentOrchestrator.start();
+            },
+            2000,
+          );
+        },
+      );
 
       return;
     }
@@ -54,15 +71,21 @@ export default defineContentScript({
     // GeeksforGeeks
     // --------------------------------------------------
 
-    if (hostname.includes("geeksforgeeks.org")) {
+    if (
+      hostname.includes(
+        "geeksforgeeks.org",
+      )
+    ) {
       console.log(
         "[CodeVault] GFG content script initialized.",
       );
 
-      // Inject the GFG page-world bridge.
-      await injectScript("/gfg-page-bridge.js", {
-        keepInDom: true,
-      });
+      await injectScript(
+        "/gfg-page-bridge.js",
+        {
+          keepInDom: true,
+        },
+      );
 
       console.log(
         "[CodeVault] GFG page bridge injected.",
@@ -83,28 +106,56 @@ export default defineContentScript({
         "[CodeVault] GFG submit button found.",
       );
 
-      submitButton.addEventListener("click", async () => {
-        console.log(
-          "[CodeVault] GFG Submit clicked.",
-        );
-
-        const accepted =
-          await waitForGfgAcceptedResult();
-
-        if (!accepted) {
+      submitButton.addEventListener(
+        "click",
+        async () => {
           console.log(
-            "[CodeVault] GFG submission was not accepted.",
+            "[CodeVault] GFG Submit clicked.",
           );
 
-          return;
-        }
+          const accepted =
+            await waitForGfgAcceptedResult();
 
-        console.log(
-          "[CodeVault] GFG submission accepted.",
-        );
+          if (!accepted) {
+            console.log(
+              "[CodeVault] GFG submission was not accepted.",
+            );
 
-        await ContentOrchestrator.start();
-      });
+            return;
+          }
+
+          console.log(
+            "[CodeVault] GFG submission accepted.",
+          );
+
+          await ContentOrchestrator.start();
+        },
+      );
+
+      return;
+    }
+
+    // --------------------------------------------------
+    // HackerRank
+    // --------------------------------------------------
+
+    if (
+      hostname.includes("hackerrank.com")
+    ) {
+      console.log(
+        "[CodeVault] HackerRank content script initialized.",
+      );
+
+      await injectScript(
+        "/hackerrank-main-world.js",
+        {
+          keepInDom: true,
+        },
+      );
+
+      console.log(
+        "[CodeVault] HackerRank main-world bridge injected.",
+      );
 
       return;
     }
@@ -120,12 +171,19 @@ async function waitForLeetCodeSubmitButton(): Promise<HTMLButtonElement | null> 
   const interval = 500;
   const startTime = Date.now();
 
-  while (Date.now() - startTime < timeout) {
-    const button = document.querySelector(
-      "button[data-e2e-locator='console-submit-button']",
-    );
+  while (
+    Date.now() - startTime <
+    timeout
+  ) {
+    const button =
+      document.querySelector(
+        "button[data-e2e-locator='console-submit-button']",
+      );
 
-    if (button instanceof HTMLButtonElement) {
+    if (
+      button instanceof
+      HTMLButtonElement
+    ) {
       return button;
     }
 
@@ -144,16 +202,29 @@ async function waitForGfgSubmitButton(): Promise<HTMLButtonElement | null> {
   const interval = 500;
   const startTime = Date.now();
 
-  while (Date.now() - startTime < timeout) {
-    const buttons = Array.from(
-      document.querySelectorAll("button"),
-    );
+  while (
+    Date.now() - startTime <
+    timeout
+  ) {
+    const buttons =
+      Array.from(
+        document.querySelectorAll(
+          "button",
+        ),
+      );
 
-    const submitButton = buttons.find((button) => {
-      const text = button.textContent?.trim();
+    const submitButton =
+      buttons.find(
+        (button) => {
+          const text =
+            button.textContent?.trim();
 
-      return text === "Submit" && !button.disabled;
-    });
+          return (
+            text === "Submit" &&
+            !button.disabled
+          );
+        },
+      );
 
     if (submitButton) {
       return submitButton;
@@ -174,10 +245,18 @@ async function waitForGfgAcceptedResult(): Promise<boolean> {
   const interval = 500;
   const startTime = Date.now();
 
-  while (Date.now() - startTime < timeout) {
-    const bodyText = document.body.innerText;
+  while (
+    Date.now() - startTime <
+    timeout
+  ) {
+    const bodyText =
+      document.body.innerText;
 
-    if (bodyText.includes("Problem Solved Successfully")) {
+    if (
+      bodyText.includes(
+        "Problem Solved Successfully",
+      )
+    ) {
       return true;
     }
 
@@ -188,11 +267,72 @@ async function waitForGfgAcceptedResult(): Promise<boolean> {
 }
 
 // --------------------------------------------------
+// HackerRank Message Listener
+// --------------------------------------------------
+
+window.addEventListener(
+  "message",
+  async (
+    event: MessageEvent,
+  ) => {
+    if (
+      event.source !== window
+    ) {
+      return;
+    }
+
+    if (
+      event.data?.type !==
+      "CODEVAULT_HACKERRANK_SUBMISSION_ACCEPTED"
+    ) {
+      return;
+    }
+
+    const submission =
+      event.data.submission;
+
+    if (!submission) {
+      console.warn(
+        "[CodeVault] HackerRank submission data missing.",
+      );
+
+      return;
+    }
+
+    console.log(
+      "[CodeVault] HackerRank accepted submission received.",
+    );
+
+    console.log(
+      "[CodeVault] HackerRank submission:",
+      submission,
+    );
+
+    setLatestSubmission(
+      submission,
+    );
+
+    console.log(
+      "[CodeVault] HackerRank accepted submission stored.",
+    );
+
+    await ContentOrchestrator.start();
+  },
+);
+
+// --------------------------------------------------
 // Utility
 // --------------------------------------------------
 
-function sleep(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
-  });
+function sleep(
+  milliseconds: number,
+): Promise<void> {
+  return new Promise(
+    (resolve) => {
+      setTimeout(
+        resolve,
+        milliseconds,
+      );
+    },
+  );
 }
