@@ -51,6 +51,15 @@ export default defineConfig({
           "*://*.leetcode.com/*",
         ],
       },
+      {
+        resources: [
+          "gfg-page-bridge.js",
+        ],
+        matches: [
+          "*://geeksforgeeks.org/*",
+          "*://*.geeksforgeeks.org/*",
+        ],
+      },
     ],
   },
 });

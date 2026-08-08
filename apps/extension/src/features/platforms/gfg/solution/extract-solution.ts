@@ -1,45 +1,81 @@
 /**
- * Extracts the submitted source code from the GFG Ace Editor.
+ * Extract the submitted source code from the GFG Ace Editor.
+ *
+ * The actual Ace editor instance exists in the page world,
+ * so the content script requests the value through gfg-page-bridge.ts.
  */
 export async function extractSolution(
   document: Document,
 ): Promise<string> {
+  const REQUEST_EVENT = "codevault:gfg:get-solution";
+  const RESPONSE_EVENT = "codevault:gfg:solution";
 
-  // Find all Ace editors on the page.
-  const editors = Array.from(
-    document.querySelectorAll(".ace_editor"),
-  );
+  return new Promise((resolve) => {
+    let resolved = false;
 
-  // Check every Ace editor.
-  for (const editor of editors) {
+    // Handle the response from the page-world bridge.
+    const handleResponse = (event: Event) => {
+      if (resolved) {
+        return;
+      }
 
-    // Extract each source-code line.
-    const lines = Array.from(
-      editor.querySelectorAll(".ace_line"),
-    ).map(
-      (line) => line.textContent ?? "",
-    );
+      resolved = true;
 
-    // Join all lines into one source-code string.
-    const code = lines.join("\n").trim();
-
-    // Return the first non-empty editor.
-    if (code) {
-
-      console.log(
-        "[CodeVault] GFG solution extracted:",
-        code.length,
-        "characters",
+      document.removeEventListener(
+        RESPONSE_EVENT,
+        handleResponse,
       );
 
-      return code;
-    }
-  }
+      const customEvent =
+        event as CustomEvent<string>;
 
-  // No code was found.
-  console.log(
-    "[CodeVault] GFG solution not found.",
-  );
+      const code =
+        customEvent.detail?.trim() ?? "";
 
-  return "";
+      if (code) {
+        console.log(
+          "[CodeVault] GFG solution extracted:",
+          code.length,
+          "characters",
+        );
+      } else {
+        console.log(
+          "[CodeVault] GFG solution not found.",
+        );
+      }
+
+      resolve(code);
+    };
+
+    // Listen before sending the request.
+    document.addEventListener(
+      RESPONSE_EVENT,
+      handleResponse,
+    );
+
+    // Ask the page-world bridge for the Ace editor value.
+    document.dispatchEvent(
+      new CustomEvent(REQUEST_EVENT),
+    );
+
+    // Prevent the extension from waiting forever.
+    setTimeout(() => {
+      if (resolved) {
+        return;
+      }
+
+      resolved = true;
+
+      document.removeEventListener(
+        RESPONSE_EVENT,
+        handleResponse,
+      );
+
+      console.log(
+        "[CodeVault] GFG solution extraction timed out.",
+      );
+
+      resolve("");
+    }, 5_000);
+  });
 }

@@ -26,7 +26,8 @@ export default defineContentScript({
         "[CodeVault] Waiting for LeetCode submission...",
       );
 
-      const submitButton = await waitForLeetCodeSubmitButton();
+      const submitButton =
+        await waitForLeetCodeSubmitButton();
 
       if (!submitButton) {
         console.log(
@@ -58,7 +59,17 @@ export default defineContentScript({
         "[CodeVault] GFG content script initialized.",
       );
 
-      const submitButton = await waitForGfgSubmitButton();
+      // Inject the GFG page-world bridge.
+      await injectScript("/gfg-page-bridge.js", {
+        keepInDom: true,
+      });
+
+      console.log(
+        "[CodeVault] GFG page bridge injected.",
+      );
+
+      const submitButton =
+        await waitForGfgSubmitButton();
 
       if (!submitButton) {
         console.log(
@@ -77,7 +88,8 @@ export default defineContentScript({
           "[CodeVault] GFG Submit clicked.",
         );
 
-        const accepted = await waitForGfgAcceptedResult();
+        const accepted =
+          await waitForGfgAcceptedResult();
 
         if (!accepted) {
           console.log(
