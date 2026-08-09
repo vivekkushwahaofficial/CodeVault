@@ -14,7 +14,6 @@ interface HackerRankSubmission {
   challenge_slug?: string;
   difficulty_name?: string;
   created_at?: string;
-
   problem_statement?: string;
   input_format?: string;
   constraints?: string;
@@ -33,8 +32,156 @@ interface HackerRankChallengeResponse {
   };
 }
 
+/**
+ * Normalizes HackerRank language identifiers.
+ *
+ * Examples:
+ *
+ * cpp
+ * cpp11
+ * cpp14
+ * cpp17
+ * C++
+ * C++17
+ * GNU C++17
+ *
+ * -> C++
+ */
+function normalizeHackerRankLanguage(
+  language: unknown,
+): string {
+  if (typeof language !== "string") {
+    return "";
+  }
+
+  const normalized = language
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+  if (!normalized) {
+    return "";
+  }
+
+  // Java
+  if (
+    normalized === "java" ||
+    /^java\s*\d+/.test(normalized)
+  ) {
+    return "Java";
+  }
+
+  // Python
+  if (
+    normalized === "python" ||
+    normalized === "python2" ||
+    normalized === "python3" ||
+    normalized === "python 2" ||
+    normalized === "python 3" ||
+    normalized.startsWith("python ") ||
+    normalized.startsWith("pypy")
+  ) {
+    return "Python";
+  }
+
+  // C++
+  if (
+    normalized === "c++" ||
+    normalized.startsWith("c++") ||
+    normalized === "cpp" ||
+    normalized.startsWith("cpp") ||
+    normalized.includes("gnu c++") ||
+    normalized.includes("gcc c++")
+  ) {
+    return "C++";
+  }
+
+  // C
+  if (
+    normalized === "c" ||
+    normalized === "gnu c" ||
+    /^c\s*\d+$/.test(normalized)
+  ) {
+    return "C";
+  }
+
+  // JavaScript
+  if (
+    normalized === "javascript" ||
+    normalized === "js" ||
+    normalized === "node" ||
+    normalized === "node.js"
+  ) {
+    return "JavaScript";
+  }
+
+  // TypeScript
+  if (
+    normalized === "typescript" ||
+    normalized === "ts"
+  ) {
+    return "TypeScript";
+  }
+
+  // C#
+  if (
+    normalized === "c#" ||
+    normalized === "csharp" ||
+    normalized === "c sharp"
+  ) {
+    return "C#";
+  }
+
+  // Go
+  if (
+    normalized === "go" ||
+    normalized === "golang"
+  ) {
+    return "Go";
+  }
+
+  // Rust
+  if (normalized === "rust") {
+    return "Rust";
+  }
+
+  // Kotlin
+  if (normalized === "kotlin") {
+    return "Kotlin";
+  }
+
+  // Swift
+  if (normalized === "swift") {
+    return "Swift";
+  }
+
+  // Ruby
+  if (normalized === "ruby") {
+    return "Ruby";
+  }
+
+  // PHP
+  if (normalized === "php") {
+    return "PHP";
+  }
+
+  // Scala
+  if (normalized === "scala") {
+    return "Scala";
+  }
+
+  console.warn(
+    "[CodeVault] Unsupported HackerRank language:",
+    language,
+  );
+
+  return "";
+}
+
 export default defineUnlistedScript(() => {
-  if (window.__codevaultHackerRankInitialized) {
+  if (
+    window.__codevaultHackerRankInitialized
+  ) {
     console.debug(
       "[CodeVault] HackerRank bridge already initialized.",
     );
@@ -42,7 +189,8 @@ export default defineUnlistedScript(() => {
     return;
   }
 
-  window.__codevaultHackerRankInitialized = true;
+  window.__codevaultHackerRankInitialized =
+    true;
 
   console.log(
     "[CodeVault] HackerRank MAIN WORLD bridge initialized.",
@@ -56,16 +204,34 @@ export default defineUnlistedScript(() => {
   const originalSend =
     OriginalXHR.prototype.send;
 
-  /*
-   * Store submission ID -> challenge slug.
+  /**
+   * IMPORTANT:
    *
-   * POST /submissions gives us the submission ID.
-   * The later GET /submissions/{id} may not always
-   * contain a reliable slug, so we remember it here.
+   * Keeps track of submissions created during
+   * this page session.
+   *
+   * This fixes the previous TypeScript error:
+   *
+   * Cannot find name 'submissionIds'
+   */
+  const submissionIds =
+    new Set<string>();
+
+  /**
+   * submission ID -> challenge slug
    */
   const submissionSlugs =
     new Map<string, string>();
 
+  /**
+   * submission ID -> normalized language
+   */
+  const submissionLanguages =
+    new Map<string, string>();
+
+  /**
+   * Intercept XMLHttpRequest.open().
+   */
   OriginalXHR.prototype.open =
     function (
       method: string,
@@ -74,20 +240,16 @@ export default defineUnlistedScript(() => {
       username?: string | null,
       password?: string | null,
     ) {
-      (
+      const xhr =
         this as XMLHttpRequest & {
           __codevaultMethod?: string;
           __codevaultUrl?: string;
-        }
-      ).__codevaultMethod =
+        };
+
+      xhr.__codevaultMethod =
         method.toUpperCase();
 
-      (
-        this as XMLHttpRequest & {
-          __codevaultMethod?: string;
-          __codevaultUrl?: string;
-        }
-      ).__codevaultUrl =
+      xhr.__codevaultUrl =
         String(url);
 
       return originalOpen.call(
@@ -100,9 +262,14 @@ export default defineUnlistedScript(() => {
       );
     };
 
+  /**
+   * Intercept XMLHttpRequest.send().
+   */
   OriginalXHR.prototype.send =
     function (
-      body?: Document | XMLHttpRequestBodyInit | null,
+      body?: Document |
+        XMLHttpRequestBodyInit |
+        null,
     ) {
       const xhr =
         this as XMLHttpRequest & {
@@ -117,9 +284,7 @@ export default defineUnlistedScript(() => {
         xhr.__codevaultUrl ?? "";
 
       if (
-        !url.includes(
-          "/rest/contests/master/challenges/",
-        )
+        !isHackerRankSubmissionUrl(url)
       ) {
         return originalSend.call(
           this,
@@ -127,10 +292,10 @@ export default defineUnlistedScript(() => {
         );
       }
 
-      xhr.addEventListener(
+      this.addEventListener(
         "load",
         () => {
-          void handleHackerRankResponse(
+          handleXHRResponse(
             method,
             url,
             this,
@@ -144,47 +309,135 @@ export default defineUnlistedScript(() => {
       );
     };
 
-  async function handleHackerRankResponse(
+  /**
+   * Intercept fetch().
+   */
+  const originalFetch =
+    window.fetch;
+
+  window.fetch =
+    async function (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> {
+      const method =
+        getFetchMethod(
+          input,
+          init,
+        );
+
+      const url =
+        getFetchUrl(input);
+
+      const response =
+        await originalFetch.call(
+          this,
+          input,
+          init,
+        );
+
+      if (
+        isHackerRankSubmissionUrl(url)
+      ) {
+        void handleFetchResponse(
+          method,
+          url,
+          response.clone(),
+        );
+      }
+
+      return response;
+    };
+
+  /**
+   * Handles XHR responses.
+   */
+  function handleXHRResponse(
     method: string,
     url: string,
     xhr: XMLHttpRequest,
-  ): Promise<void> {
-    if (xhr.status !== 200) {
-      return;
-    }
-
-    if (!url.includes("/submissions")) {
+  ): void {
+    if (
+      xhr.status < 200 ||
+      xhr.status >= 300
+    ) {
       return;
     }
 
     const data =
-      parseResponse(xhr);
+      parseXHRResponse(xhr);
 
     if (!data?.model) {
       return;
     }
 
+    void handleSubmissionResponse(
+      method,
+      url,
+      data,
+    );
+  }
+
+  /**
+   * Handles fetch responses.
+   */
+  async function handleFetchResponse(
+    method: string,
+    url: string,
+    response: Response,
+  ): Promise<void> {
+    if (
+      response.status < 200 ||
+      response.status >= 300
+    ) {
+      return;
+    }
+
+    try {
+      const data =
+        (await response.json()) as HackerRankResponse;
+
+      if (!data?.model) {
+        return;
+      }
+
+      await handleSubmissionResponse(
+        method,
+        url,
+        data,
+      );
+    } catch {
+      // Ignore non-JSON responses.
+    }
+  }
+
+  /**
+   * Handles HackerRank submission responses.
+   */
+  async function handleSubmissionResponse(
+    method: string,
+    url: string,
+    data: HackerRankResponse,
+  ): Promise<void> {
     const model =
       data.model;
 
+    if (!model) {
+      return;
+    }
+
     console.log(
-      "[CodeVault] HackerRank XHR:",
+      "[CodeVault] HackerRank submission response:",
       method,
       url,
+      model,
     );
 
-    console.log(
-      "[CodeVault] HackerRank status:",
-      model.status,
-    );
-
-    /*
+    /**
      * POST /submissions
      *
-     * HackerRank initially returns:
-     * status = Processing
-     *
-     * Save the submission ID and challenge slug.
+     * Store submission information because the
+     * later GET request may not contain language.
      */
     if (
       method === "POST" &&
@@ -196,12 +449,30 @@ export default defineUnlistedScript(() => {
       const slug =
         model.slug ??
         model.challenge_slug ??
-        "";
+        extractSlugFromSubmissionUrl(
+          url,
+        );
+
+      const language =
+        normalizeHackerRankLanguage(
+          model.language,
+        );
+
+      submissionIds.add(
+        submissionId,
+      );
 
       if (slug) {
         submissionSlugs.set(
           submissionId,
           slug,
+        );
+      }
+
+      if (language) {
+        submissionLanguages.set(
+          submissionId,
+          language,
         );
       }
 
@@ -211,136 +482,304 @@ export default defineUnlistedScript(() => {
       );
 
       console.log(
-        "[CodeVault] Challenge slug:",
-        slug,
+        "[CodeVault] Submission language:",
+        language || "missing",
       );
 
       return;
     }
 
-    /*
+    /**
      * GET /submissions/{id}
      *
-     * HackerRank eventually returns:
-     * status = Accepted
-     */
-    if (
-      method !== "GET" ||
-      !model.id ||
-      model.status !== "Accepted"
-    ) {
-      return;
-    }
-
-    const submissionId =
-      String(model.id);
-
-    const slug =
-      model.slug ??
-      model.challenge_slug ??
-      submissionSlugs.get(
-        submissionId,
-      ) ??
-      "";
-
-    /*
-     * We only process submissions that were
+     * Process only accepted submissions
      * created during this page session.
      */
     if (
-      !submissionSlugs.has(
-        submissionId,
-      )
+      method === "GET" &&
+      model.id &&
+      model.status === "Accepted"
     ) {
-      return;
-    }
+      const submissionId =
+        String(model.id);
 
-    submissionSlugs.delete(
-      submissionId,
-    );
+      if (
+        !submissionIds.has(
+          submissionId,
+        )
+      ) {
+        console.debug(
+          "[CodeVault] Accepted submission was not created in this page session:",
+          submissionId,
+        );
 
-    console.log(
-      "[CodeVault] HackerRank submission ACCEPTED:",
-      submissionId,
-    );
+        return;
+      }
 
-    /*
-     * Fetch the HackerRank challenge metadata.
-     *
-     * Example:
-     * /rest/contests/master/challenges/java-stdin-and-stdout-1/
-     *
-     * Response contains:
-     * model.difficulty_name = "Easy"
-     */
-    const difficulty =
-      await getChallengeDifficulty(
-        slug,
+      /**
+       * Remove it immediately so the same
+       * accepted submission cannot be dispatched
+       * multiple times.
+       */
+      submissionIds.delete(
+        submissionId,
       );
 
-    console.log(
-      "[CodeVault] HackerRank difficulty:",
-      difficulty,
-    );
+      console.log(
+        "[CodeVault] HackerRank submission ACCEPTED:",
+        submissionId,
+      );
 
-    window.postMessage(
-      {
-        type:
-          "CODEVAULT_HACKERRANK_SUBMISSION_ACCEPTED",
+      /**
+       * Resolve challenge slug.
+       */
+      const slug =
+        model.slug ??
+        model.challenge_slug ??
+        submissionSlugs.get(
+          submissionId,
+        ) ??
+        extractSlugFromSubmissionUrl(
+          url,
+        ) ??
+        "";
 
-        submission: {
-          id: model.id,
+      /**
+       * Resolve language.
+       *
+       * First preference:
+       * accepted response language
+       *
+       * Second preference:
+       * language captured from POST
+       */
+      const language =
+        normalizeHackerRankLanguage(
+          model.language,
+        ) ||
+        submissionLanguages.get(
+          submissionId,
+        ) ||
+        "";
 
-          status:
-            model.status,
+      /**
+       * Clean temporary state.
+       */
+      submissionSlugs.delete(
+        submissionId,
+      );
 
-          language:
-            model.language ?? "",
+      submissionLanguages.delete(
+        submissionId,
+      );
 
-          code:
-            model.code ?? "",
+      /**
+       * Never create an Unknown language
+       * folder.
+       */
+      if (!language) {
+        console.error(
+          "[CodeVault] Accepted HackerRank submission has no supported language. Sync skipped.",
+          {
+            submissionId,
+            rawLanguage:
+              model.language,
+            slug,
+          },
+        );
 
-          title:
-            model.name ?? "",
+        return;
+      }
 
-          slug:
+      /**
+       * Fetch difficulty.
+       */
+      const difficulty =
+        await getChallengeDifficulty(
+          slug,
+        );
+
+      console.log(
+        "[CodeVault] HackerRank difficulty:",
+        difficulty,
+      );
+
+      console.log(
+        "[CodeVault] HackerRank normalized language:",
+        language,
+      );
+
+      /**
+       * Send normalized accepted submission
+       * to the CodeVault content script.
+       */
+      window.postMessage(
+        {
+          type:
+            "CODEVAULT_HACKERRANK_SUBMISSION_ACCEPTED",
+
+          submission: {
+            id:
+              model.id,
+
+            status:
+              model.status,
+
+            language,
+
+            code:
+              model.code ?? "",
+
+            title:
+              model.name ?? "",
+
             slug,
 
-          difficulty:
-            difficulty ??
-            model.difficulty_name ??
-            "Unknown",
+            difficulty:
+              difficulty ??
+              model.difficulty_name ??
+              "Unknown",
 
-          url:
-            window.location.href,
+            url:
+              window.location.href,
 
-          solvedAt:
-            model.created_at ??
-            new Date().toISOString(),
+            solvedAt:
+              model.created_at ??
+              new Date().toISOString(),
 
-          problemStatement:
-            model.problem_statement ??
-            "",
+            problemStatement:
+              model.problem_statement ??
+              "",
 
-          inputFormat:
-            model.input_format ??
-            "",
+            inputFormat:
+              model.input_format ??
+              "",
 
-          constraints:
-            model.constraints ??
-            "",
+            constraints:
+              model.constraints ??
+              "",
 
-          outputFormat:
-            model.output_format ??
-            "",
+            outputFormat:
+              model.output_format ??
+              "",
+          },
         },
-      },
-      "*",
+        "*",
+      );
+
+      console.log(
+        "[CodeVault] Accepted submission event dispatched.",
+      );
+    }
+  }
+
+  /**
+   * Determines whether a URL is a HackerRank
+   * submission API endpoint.
+   */
+  function isHackerRankSubmissionUrl(
+    url: string,
+  ): boolean {
+    return (
+      url.includes(
+        "/rest/contests/master/challenges/",
+      ) &&
+      url.includes(
+        "/submissions",
+      )
     );
   }
 
   /**
-   * Get difficulty from HackerRank challenge API.
+   * Gets URL from fetch input.
+   */
+  function getFetchUrl(
+    input: RequestInfo | URL,
+  ): string {
+    if (
+      typeof input === "string"
+    ) {
+      return new URL(
+        input,
+        window.location.href,
+      ).href;
+    }
+
+    if (
+      input instanceof URL
+    ) {
+      return input.href;
+    }
+
+    return input.url;
+  }
+
+  /**
+   * Gets HTTP method from fetch input.
+   */
+  function getFetchMethod(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): string {
+    if (init?.method) {
+      return init.method.toUpperCase();
+    }
+
+    if (
+      typeof Request !== "undefined" &&
+      input instanceof Request
+    ) {
+      return input.method.toUpperCase();
+    }
+
+    return "GET";
+  }
+
+  /**
+   * Parses XHR response.
+   */
+  function parseXHRResponse(
+    xhr: XMLHttpRequest,
+  ): HackerRankResponse | null {
+    try {
+      if (
+        xhr.responseType === "json" &&
+        xhr.response
+      ) {
+        return xhr.response as HackerRankResponse;
+      }
+
+      const text =
+        xhr.responseText;
+
+      if (!text) {
+        return null;
+      }
+
+      return JSON.parse(
+        text,
+      ) as HackerRankResponse;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Extracts challenge slug from submission URL.
+   */
+  function extractSlugFromSubmissionUrl(
+    url: string,
+  ): string {
+    const match =
+      url.match(
+        /\/challenges\/([^/]+)\/submissions/,
+      );
+
+    return match?.[1] ?? "";
+  }
+
+  /**
+   * Fetches HackerRank challenge difficulty.
    */
   async function getChallengeDifficulty(
     slug: string,
@@ -388,32 +827,6 @@ export default defineUnlistedScript(() => {
         error,
       );
 
-      return null;
-    }
-  }
-
-  function parseResponse(
-    xhr: XMLHttpRequest,
-  ): HackerRankResponse | null {
-    try {
-      if (
-        xhr.responseType === "json" &&
-        xhr.response
-      ) {
-        return xhr.response as HackerRankResponse;
-      }
-
-      const text =
-        xhr.responseText;
-
-      if (!text) {
-        return null;
-      }
-
-      return JSON.parse(
-        text,
-      ) as HackerRankResponse;
-    } catch {
       return null;
     }
   }

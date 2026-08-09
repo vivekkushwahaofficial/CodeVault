@@ -1,4 +1,4 @@
-import type { SolutionMetadata } from "../file-generator";
+import type { SolutionMetadata } from "../solution-path-generator";
 
 export interface SolutionFile {
 

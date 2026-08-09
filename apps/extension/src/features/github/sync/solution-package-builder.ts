@@ -1,7 +1,7 @@
 import { generateReadme } from "../readme/readme-generator";
-import { generateSolutionPath } from "./file-generator";
+import { generateSolutionPath } from "./solution-path-generator";
 
-import type { SolutionMetadata } from "./file-generator";
+import type { SolutionMetadata } from "./solution-path-generator";
 import type { ProblemStatement } from "../../platforms/shared/problem-statement";
 import type { SolutionPackage } from "./types/solution-package";
 

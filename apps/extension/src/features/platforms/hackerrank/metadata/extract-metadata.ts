@@ -1,98 +1,144 @@
 import type { ProblemMetadata } from "../../shared/problem-metadata";
+
 import { PlatformType } from "../../shared/platform-type";
-import { getLatestSubmission } from "../submission/hackerrank-submission-store";
+
+import {
+  getLatestSubmission,
+} from "../submission/hackerrank-submission-store";
 
 /**
- * Extract normalized metadata from a HackerRank problem page.
+ * Extracts normalized metadata from the
+ * latest accepted HackerRank submission.
  */
 export function extractMetadata(
   document: Document,
 ): ProblemMetadata {
-  // Find the HackerRank problem title.
-  const titleElement =
-    document.querySelector("h1.page-label");
+  /*
+   * HackerRank metadata is captured from the
+   * intercepted submission API response.
+   *
+   * The document parameter is kept because the
+   * platform adapter interface requires it.
+   */
+  void document;
 
-  // Read the title text.
-  const title =
-    titleElement?.textContent?.trim();
-
-  // Stop if the title cannot be found.
-  if (!title) {
-    throw new Error(
-      "HackerRank problem title not found",
-    );
-  }
-
-  // Get the current HackerRank problem URL.
-  const url =
-    window.location.href;
-
-  // Split the URL path into individual parts.
-  const pathParts =
-    window.location.pathname
-      .split("/")
-      .filter(Boolean);
-
-  // Find the "challenges" part of the URL.
-  const challengeIndex =
-    pathParts.indexOf("challenges");
-
-  // Default slug.
-  let slug = "unknown";
-
-  // Extract the challenge slug safely.
-  if (challengeIndex !== -1) {
-    const possibleSlug =
-      pathParts[challengeIndex + 1];
-
-    if (possibleSlug) {
-      slug = possibleSlug;
-    }
-  }
-
-  // Get the latest accepted HackerRank submission.
+  /**
+   * Get the latest accepted submission.
+   */
   const submission =
     getLatestSubmission();
 
-  // Use the difficulty received from HackerRank's API.
+  /**
+   * No accepted submission means that metadata
+   * cannot be extracted.
+   */
+  if (!submission) {
+    throw new Error(
+      "HackerRank accepted submission metadata not found.",
+    );
+  }
+
+  /**
+   * Platform is always HackerRank.
+   */
+  const platform =
+    PlatformType.HACKERRANK;
+
+  /**
+   * Problem title is mandatory.
+   */
+  const title =
+    submission.title?.trim();
+
+  if (!title) {
+    throw new Error(
+      "HackerRank problem title not found.",
+    );
+  }
+
+  /**
+   * Problem slug is mandatory.
+   */
+  const slug =
+    submission.slug?.trim();
+
+  if (!slug) {
+    throw new Error(
+      `HackerRank problem slug not found for "${title}".`,
+    );
+  }
+
+  /**
+   * Programming language is mandatory.
+   *
+   * We do NOT allow an empty language to
+   * reach the GitHub synchronization layer.
+   */
+  const language =
+    submission.language?.trim();
+
+  if (!language) {
+    throw new Error(
+      `HackerRank programming language not found for "${title}".`,
+    );
+  }
+
+  /**
+   * Difficulty can legitimately be Unknown
+   * if HackerRank does not expose it.
+   */
   const difficulty =
-    submission?.difficulty?.trim() ||
+    submission.difficulty?.trim() ||
     "Unknown";
 
-  // Extract the selected programming language.
-  const language =
-    submission?.language?.trim() ||
-    extractLanguage(document);
+  /**
+   * Use the submission URL when available.
+   */
+  const url =
+    submission.url?.trim() ||
+    window.location.href;
 
-  // Return normalized metadata.
-  return {
-    platform: PlatformType.HACKERRANK,
-    title,
-    slug,
-    difficulty,
-    language,
-    url,
-    solvedAt:
-      submission?.solvedAt
-        ? new Date(submission.solvedAt)
-        : new Date(),
-  };
-}
+  /**
+   * Convert HackerRank's ISO date string
+   * into the Date object expected by
+   * ProblemMetadata.
+   */
+  const solvedAt =
+    submission.solvedAt
+      ? new Date(
+        submission.solvedAt,
+      )
+      : new Date();
 
-/**
- * Extract the programming language from the
- * HackerRank domain breadcrumb.
- */
-function extractLanguage(
-  document: Document,
-): string {
-  const languageElement =
-    document.querySelector(
-      'a[href^="/domains/"] .breadcrumb-item-text',
+  /**
+   * Protect against invalid date strings.
+   */
+  if (
+    Number.isNaN(
+      solvedAt.getTime(),
+    )
+  ) {
+    throw new Error(
+      `Invalid HackerRank solvedAt value for "${title}": ${submission.solvedAt}`,
     );
+  }
 
-  const language =
-    languageElement?.textContent?.trim();
+  /**
+   * Return production-ready metadata.
+   */
+  return {
+    platform,
 
-  return language ?? "";
+    title,
+
+    slug,
+
+    difficulty,
+
+    language,
+
+    url,
+
+    solvedAt,
+  };
 }
