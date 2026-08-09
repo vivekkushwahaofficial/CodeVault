@@ -10,7 +10,7 @@ export default defineConfig({
 
     short_name: "CodeVault",
 
-    version: "1.1.0",
+    version: "1.2.0",
 
     description:
       "Automatically extract and sync coding solutions to GitHub.",
@@ -60,6 +60,15 @@ export default defineConfig({
           "*://*.geeksforgeeks.org/*",
         ],
       },
-    ],
+      {
+        resources: [
+          "hackerrank-main-world.js",
+        ],
+        matches: [
+          "*://hackerrank.com/*",
+          "*://*.hackerrank.com/*",
+        ],
+      },
+    ]
   },
 });

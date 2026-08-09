@@ -1,5 +1,6 @@
 import type { ProblemMetadata } from "../../shared/problem-metadata";
 import { PlatformType } from "../../shared/platform-type";
+import { SOLUTION_MESSAGE } from "../solution/solution-message";
 
 /**
  * Extract the currently selected programming language
@@ -12,11 +13,13 @@ import { PlatformType } from "../../shared/platform-type";
  * JavaScript (Node v22) -> JavaScript
  * TypeScript -> TypeScript
  */
-function extractLanguage(document: Document): string {
+function extractLanguageFromDropdown(
+  document: Document,
+): string {
   /*
-   * LeetCode's language selector can change its internal
-   * DOM structure, so we first locate the language dropdown
-   * using its semantic/class information.
+   * LeetCode's language selector can change its
+   * internal DOM structure, so we first locate the
+   * language dropdown using its class information.
    */
   const dropdown = document.querySelector(
     '[class*="problems_language_dropdown"]',
@@ -24,7 +27,7 @@ function extractLanguage(document: Document): string {
 
   if (!dropdown) {
     console.warn(
-      "[CodeVault] LeetCode language dropdown not found",
+      "[CodeVault] LeetCode language dropdown not found.",
     );
 
     return "";
@@ -34,9 +37,10 @@ function extractLanguage(document: Document): string {
    * Preferred approach:
    * Find the currently selected option.
    */
-  const selectedOption = dropdown.querySelector(
-    '[role="option"][aria-selected="true"]',
-  );
+  const selectedOption =
+    dropdown.querySelector(
+      '[role="option"][aria-selected="true"]',
+    );
 
   if (selectedOption) {
     const selectedText =
@@ -56,12 +60,13 @@ function extractLanguage(document: Document): string {
   }
 
   /*
-   * Fallback for LeetCode UI variants where the selected
-   * language is rendered differently.
+   * Fallback for LeetCode UI variants where the
+   * selected language is rendered differently.
    */
-  const fallbackElement = dropdown.querySelector(
-    '[role="option"], [role="alert"]',
-  );
+  const fallbackElement =
+    dropdown.querySelector(
+      '[role="option"], [role="alert"]',
+    );
 
   const fallbackText =
     fallbackElement?.textContent?.trim() ?? "";
@@ -79,11 +84,7 @@ function extractLanguage(document: Document): string {
   }
 
   /*
-   * Final fallback:
-   * Check the dropdown's visible text itself.
-   *
-   * This is intentionally done last because the complete
-   * dropdown may contain multiple language options.
+   * Final dropdown fallback.
    */
   const dropdownText =
     dropdown.textContent?.trim() ?? "";
@@ -101,13 +102,133 @@ function extractLanguage(document: Document): string {
   }
 
   console.warn(
-    "[CodeVault] Unable to determine LeetCode language",
+    "[CodeVault] Unable to determine LeetCode language from dropdown.",
     {
       dropdownText,
     },
   );
 
   return "";
+}
+
+/**
+ * Request the language directly from the
+ * LeetCode Monaco editor running in MAIN WORLD.
+ *
+ * This is required because the submission page may
+ * not contain LeetCode's language dropdown.
+ */
+function extractLanguageFromMainWorld(): Promise<string> {
+  return new Promise<string>((resolve) => {
+    let resolved = false;
+
+    const cleanup = () => {
+      window.removeEventListener(
+        "message",
+        handleMessage,
+      );
+
+      window.clearTimeout(timeoutId);
+    };
+
+    const finish = (language: string) => {
+      if (resolved) {
+        return;
+      }
+
+      resolved = true;
+
+      cleanup();
+
+      resolve(language);
+    };
+
+    const handleMessage = (
+      event: MessageEvent,
+    ) => {
+      if (
+        event.source !== window ||
+        event.data?.type !== SOLUTION_MESSAGE
+      ) {
+        return;
+      }
+
+      const rawLanguage =
+        String(
+          event.data?.language ?? "",
+        ).trim();
+
+      if (!rawLanguage) {
+        return;
+      }
+
+      const language =
+        normalizeLanguage(rawLanguage);
+
+      if (!language) {
+        return;
+      }
+
+      console.log(
+        "[CodeVault] LeetCode language from Monaco:",
+        language,
+      );
+
+      finish(language);
+    };
+
+    window.addEventListener(
+      "message",
+      handleMessage,
+    );
+
+    /*
+     * Ask the MAIN WORLD bridge for the current
+     * Monaco solution and language.
+     */
+    window.postMessage(
+      {
+        type: "CODEVAULT_REQUEST_SOLUTION",
+      },
+      "*",
+    );
+
+    const timeoutId =
+      window.setTimeout(() => {
+        console.warn(
+          "[CodeVault] Monaco language detection timed out.",
+        );
+
+        finish("");
+      }, 10_000);
+  });
+}
+
+/**
+ * Extract LeetCode language.
+ *
+ * Order:
+ *
+ * 1. Try the normal LeetCode dropdown.
+ * 2. If unavailable, ask Monaco MAIN WORLD.
+ */
+async function extractLanguage(
+  document: Document,
+): Promise<string> {
+  const dropdownLanguage =
+    extractLanguageFromDropdown(
+      document,
+    );
+
+  if (dropdownLanguage) {
+    return dropdownLanguage;
+  }
+
+  console.log(
+    "[CodeVault] Falling back to Monaco language detection.",
+  );
+
+  return extractLanguageFromMainWorld();
 }
 
 /**
@@ -126,9 +247,9 @@ function normalizeLanguage(
   /*
    * Remove version/runtime information.
    *
-   * Java (21)                 -> Java
-   * C++ (17)                  -> C++
-   * JavaScript (Node v22)    -> JavaScript
+   * Java (21) -> Java
+   * C++ (17) -> C++
+   * JavaScript (Node v22) -> JavaScript
    */
   const normalized = text
     .replace(/\s*\([^)]*\)/g, "")
@@ -165,7 +286,7 @@ function normalizeLanguage(
     return "TypeScript";
   }
 
-  if (/^go$/i.test(normalized)) {
+  if (/^(go|golang)$/i.test(normalized)) {
     return "Go";
   }
 
@@ -192,14 +313,18 @@ function normalizeLanguage(
  * Extracts normalized metadata from the LeetCode
  * submission/problem page.
  */
-export function extractMetadata(
+export async function extractMetadata(
   document: Document,
-): ProblemMetadata {
+): Promise<ProblemMetadata> {
   const script =
-    document.getElementById("__NEXT_DATA__");
+    document.getElementById(
+      "__NEXT_DATA__",
+    );
 
   if (!script?.textContent) {
-    throw new Error("__NEXT_DATA__ not found");
+    throw new Error(
+      "__NEXT_DATA__ not found",
+    );
   }
 
   const nextData =
@@ -210,7 +335,9 @@ export function extractMetadata(
       ?.dehydratedState?.queries;
 
   if (!Array.isArray(queries)) {
-    throw new Error("Queries not found");
+    throw new Error(
+      "Queries not found",
+    );
   }
 
   const questionQuery =
@@ -236,15 +363,17 @@ export function extractMetadata(
   }
 
   /*
-   * Extract the language currently selected
-   * in the LeetCode editor.
+   * Extract the currently selected language.
+   *
+   * The normal dropdown is preferred.
+   * Monaco MAIN WORLD is used as fallback.
    */
   const language =
-    extractLanguage(document);
+    await extractLanguage(document);
 
   if (!language) {
     console.warn(
-      "[CodeVault] LeetCode language could not be detected",
+      "[CodeVault] LeetCode language could not be detected.",
     );
   }
 
