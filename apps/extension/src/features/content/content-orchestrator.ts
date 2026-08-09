@@ -25,7 +25,7 @@ export class ContentOrchestrator {
 
     try {
       /*
-       * Create platform adapter.
+       * Create the platform adapter.
        */
       const adapter =
         PlatformFactory.create();
@@ -38,7 +38,7 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Check whether the submission
+       * Check whether the latest submission
        * was accepted.
        */
       const accepted =
@@ -64,7 +64,7 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Extract metadata.
+       * Extract normalized platform metadata.
        */
       const metadata =
         await adapter.extractMetadata(
@@ -77,13 +77,8 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Validate metadata BEFORE doing
-       * any GitHub synchronization.
-       *
-       * This prevents invalid folders such as:
-       *
-       * Unknown/
-       * Solution.txt
+       * Validate metadata before doing any
+       * GitHub synchronization.
        */
       ContentOrchestrator.validateMetadata(
         metadata,
@@ -94,7 +89,7 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Extract source code.
+       * Extract the submitted source code.
        */
       const solution =
         await adapter.extractSolution(
@@ -116,12 +111,27 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Generate deterministic fingerprint.
+       * Generate a language-aware deterministic
+       * fingerprint.
+       *
+       * The fingerprint identity is:
+       *
+       * Platform
+       * + Problem Slug
+       * + Language
+       * + Source Code
+       *
+       * Therefore:
+       *
+       * Same problem + Java
+       * !=
+       * Same problem + Python
        */
       const fingerprint =
         await generateFingerprint(
           metadata.platform,
           metadata.slug,
+          metadata.language,
           solution,
         );
 
@@ -131,8 +141,8 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Check whether the solution was
-       * already synchronized.
+       * Check whether THIS EXACT solution in THIS
+       * programming language was already synchronized.
        */
       const alreadySynced =
         await isFingerprintSynced(
@@ -141,14 +151,15 @@ export class ContentOrchestrator {
 
       if (alreadySynced) {
         console.log(
-          "[CodeVault] Solution already synced. Skipping GitHub commit.",
+          "[CodeVault] Solution already synced for this platform, problem, language, and source. Skipping GitHub commit.",
         );
 
         return;
       }
 
       /*
-       * Extract problem statement.
+       * Extract the problem statement only when
+       * synchronization is actually required.
        */
       const problemStatement =
         await adapter.extractProblemStatement(
@@ -160,7 +171,15 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Build the complete solution package.
+       * Build the complete GitHub solution package.
+       *
+       * The existing path generator already uses:
+       *
+       * Platform/
+       *   Language/
+       *     Difficulty/
+       *       Problem/
+       *         Solution.ext
        */
       const solutionPackage =
         buildSolutionPackage(
@@ -188,8 +207,8 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Save fingerprint only after
-       * successful GitHub synchronization.
+       * Save the fingerprint ONLY after successful
+       * GitHub synchronization.
        */
       await saveFingerprint(
         fingerprint,
@@ -210,7 +229,7 @@ export class ContentOrchestrator {
   }
 
   /**
-   * Validate metadata before synchronization.
+   * Validates metadata before synchronization.
    *
    * The purpose is to prevent malformed GitHub
    * structures such as:
@@ -249,8 +268,8 @@ export class ContentOrchestrator {
     }
 
     /*
-     * Problem slug is mandatory because
-     * it is used for deterministic fingerprints.
+     * Problem slug is mandatory because it is
+     * part of the deterministic fingerprint.
      */
     if (!metadata.slug?.trim()) {
       throw new Error(
@@ -259,10 +278,11 @@ export class ContentOrchestrator {
     }
 
     /*
-     * Programming language is mandatory.
+     * Programming language is mandatory because
+     * language is part of both:
      *
-     * Never allow an empty language to reach
-     * GitHub synchronization.
+     * 1. GitHub path
+     * 2. Synchronization fingerprint
      */
     if (!metadata.language?.trim()) {
       throw new Error(
@@ -271,8 +291,8 @@ export class ContentOrchestrator {
     }
 
     /*
-     * Difficulty can be Unknown because
-     * some platforms may not expose it.
+     * Difficulty can legitimately be unknown on
+     * platforms that do not expose it.
      */
     if (!metadata.difficulty?.trim()) {
       metadata.difficulty =
