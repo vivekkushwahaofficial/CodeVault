@@ -1,4 +1,5 @@
 import { ContentOrchestrator } from "../src/features/content/content-orchestrator";
+import { setLatestSubmission } from "../src/features/platforms/hackerrank/submission/hackerrank-submission-store";
 
 export default defineContentScript({
   matches: [
@@ -6,6 +7,8 @@ export default defineContentScript({
     "*://*.leetcode.com/*",
     "*://geeksforgeeks.org/*",
     "*://*.geeksforgeeks.org/*",
+    "*://hackerrank.com/*",
+    "*://*.hackerrank.com/*",
   ],
 
   async main() {
@@ -108,8 +111,142 @@ export default defineContentScript({
 
       return;
     }
+
+    // --------------------------------------------------
+    // HackerRank
+    // --------------------------------------------------
+
+    if (
+      hostname === "hackerrank.com" ||
+      hostname.endsWith(".hackerrank.com")
+    ) {
+      console.log(
+        "[CodeVault] HackerRank content script initialized.",
+      );
+
+      /*
+       * Listen before injecting the MAINWORLD bridge.
+       *
+       * This guarantees that CodeVault is ready to receive
+       * the accepted-submission event when HackerRank finishes
+       * processing the submission.
+       */
+      window.addEventListener(
+        "message",
+        handleHackerRankSubmissionMessage,
+      );
+
+      await injectScript("/hackerrank-main-world.js", {
+        keepInDom: true,
+      });
+
+      console.log(
+        "[CodeVault] HackerRank MAINWORLD bridge injected.",
+      );
+
+      return;
+    }
   },
 });
+
+// --------------------------------------------------
+// HackerRank Submission Message
+// --------------------------------------------------
+
+function handleHackerRankSubmissionMessage(
+  event: MessageEvent,
+): void {
+  /*
+   * Only accept messages coming from the current page.
+   */
+  if (event.source !== window) {
+    return;
+  }
+
+  const data = event.data;
+
+  if (
+    !data ||
+    data.type !==
+      "CODEVAULT_HACKERRANK_SUBMISSION_ACCEPTED"
+  ) {
+    return;
+  }
+
+  const submission =
+    data.submission;
+
+  if (!submission) {
+    console.error(
+      "[CodeVault] HackerRank accepted submission payload missing.",
+    );
+
+    return;
+  }
+
+  /*
+   * Store the accepted HackerRank submission.
+   *
+   * HackerRankAdapter reads this same store when
+   * ContentOrchestrator starts.
+   */
+  setLatestSubmission({
+    id: Number(submission.id),
+    status: String(submission.status ?? ""),
+    language: String(submission.language ?? ""),
+    code: String(submission.code ?? ""),
+    title: String(submission.title ?? ""),
+    slug: String(submission.slug ?? ""),
+    difficulty: String(
+      submission.difficulty ?? "Unknown",
+    ),
+    url: String(
+      submission.url ?? window.location.href,
+    ),
+    solvedAt: String(
+      submission.solvedAt ??
+        new Date().toISOString(),
+    ),
+
+    problemStatement: String(
+      submission.problemStatement ?? "",
+    ),
+
+    inputFormat: String(
+      submission.inputFormat ?? "",
+    ),
+
+    constraints: String(
+      submission.constraints ?? "",
+    ),
+
+    outputFormat: String(
+      submission.outputFormat ?? "",
+    ),
+  });
+
+  console.log(
+    "[CodeVault] HackerRank accepted submission received.",
+  );
+
+  console.log(
+    "[CodeVault] HackerRank submission:",
+    {
+      title: submission.title,
+      language: submission.language,
+      difficulty: submission.difficulty,
+      slug: submission.slug,
+    },
+  );
+
+  /*
+   * Give the submission store a moment to update before
+   * starting the common synchronization pipeline.
+   */
+  setTimeout(() => {
+    void ContentOrchestrator.start();
+  }, 100);
+}
 
 // --------------------------------------------------
 // LeetCode Submit Button
@@ -150,9 +287,13 @@ async function waitForGfgSubmitButton(): Promise<HTMLButtonElement | null> {
     );
 
     const submitButton = buttons.find((button) => {
-      const text = button.textContent?.trim();
+      const text =
+        button.textContent?.trim();
 
-      return text === "Submit" && !button.disabled;
+      return (
+        text === "Submit" &&
+        !button.disabled
+      );
     });
 
     if (submitButton) {
@@ -175,9 +316,14 @@ async function waitForGfgAcceptedResult(): Promise<boolean> {
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
-    const bodyText = document.body.innerText;
+    const bodyText =
+      document.body.innerText;
 
-    if (bodyText.includes("Problem Solved Successfully")) {
+    if (
+      bodyText.includes(
+        "Problem Solved Successfully",
+      )
+    ) {
       return true;
     }
 
@@ -191,8 +337,13 @@ async function waitForGfgAcceptedResult(): Promise<boolean> {
 // Utility
 // --------------------------------------------------
 
-function sleep(milliseconds: number): Promise<void> {
+function sleep(
+  milliseconds: number,
+): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
+    setTimeout(
+      resolve,
+      milliseconds,
+    );
   });
 }
