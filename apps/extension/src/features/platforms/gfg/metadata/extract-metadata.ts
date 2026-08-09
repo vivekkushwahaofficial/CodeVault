@@ -2,77 +2,187 @@ import type { ProblemMetadata } from "../../shared/problem-metadata";
 import { PlatformType } from "../../shared/platform-type";
 
 /**
+ * Supported programming languages returned by CodeVault.
+ */
+const LANGUAGE_PATTERNS: Array<{
+  pattern: RegExp;
+  value: string;
+}> = [
+  {
+    pattern: /^c\+\+(?:\s*\([^)]*\))?$/i,
+    value: "C++",
+  },
+  {
+    pattern: /^java(?:\s*\([^)]*\))?$/i,
+    value: "Java",
+  },
+  {
+    pattern: /^python(?:3)?$/i,
+    value: "Python",
+  },
+  {
+    pattern: /^javascript(?:\s*\([^)]*\))?$/i,
+    value: "JavaScript",
+  },
+  {
+    pattern: /^typescript$/i,
+    value: "TypeScript",
+  },
+  {
+    pattern: /^c(?:\s*\([^)]*\))?$/i,
+    value: "C",
+  },
+  {
+    pattern: /^c#$/i,
+    value: "C#",
+  },
+  {
+    pattern: /^go$/i,
+    value: "Go",
+  },
+  {
+    pattern: /^rust$/i,
+    value: "Rust",
+  },
+  {
+    pattern: /^kotlin$/i,
+    value: "Kotlin",
+  },
+  {
+    pattern: /^swift$/i,
+    value: "Swift",
+  },
+];
+
+/**
  * Extract normalized metadata from a GeeksforGeeks problem page.
  */
 export function extractMetadata(
   document: Document,
 ): ProblemMetadata {
-  // Find the GFG problem title.
+  /**
+   * GFG problem title.
+   */
   const titleElement =
-    document.querySelector("h3.g-m-0");
+    document.querySelector(
+      "h3.g-m-0",
+    );
 
-  // Read the title text.
   const title =
-    titleElement?.textContent?.trim();
+    titleElement
+      ?.textContent
+      ?.trim();
 
-  // Stop if the title cannot be found.
   if (!title) {
     throw new Error(
       "GFG problem title not found",
     );
   }
 
-  // Get the current GFG problem URL.
+  /**
+   * Current problem URL.
+   */
   const url =
     window.location.href;
 
-  // Split the URL path into individual parts.
+  /**
+   * Extract problem slug from:
+   *
+   * /problems/<slug>/
+   */
   const pathParts =
     window.location.pathname
       .split("/")
       .filter(Boolean);
 
-  // Find the "problems" part of the URL.
   const problemIndex =
-    pathParts.indexOf("problems");
+    pathParts.indexOf(
+      "problems",
+    );
 
-  // Default slug.
   let slug = "unknown";
 
-  // Extract the slug safely.
   if (problemIndex !== -1) {
     const possibleSlug =
-      pathParts[problemIndex + 1];
+      pathParts[
+        problemIndex + 1
+      ];
 
     if (possibleSlug) {
-      slug = possibleSlug;
+      slug =
+        possibleSlug.trim();
     }
   }
 
-  // Extract the difficulty.
+  if (
+    !slug ||
+    slug === "unknown"
+  ) {
+    throw new Error(
+      `GFG problem slug not found for "${title}"`,
+    );
+  }
+
+  /**
+   * Extract difficulty.
+   */
   const difficulty =
-    extractDifficulty(document);
+    extractDifficulty(
+      document,
+    );
 
-  // Extract the selected programming language.
+  /**
+   * Extract currently selected
+   * programming language.
+   */
   const language =
-    extractLanguage(document);
+    extractLanguage(
+      document,
+    );
 
-  // Return normalized metadata.
+  console.log(
+    "[CodeVault] GFG language:",
+    language || "NOT FOUND",
+  );
+
+  /**
+   * Never allow an unknown language
+   * to reach GitHub synchronization.
+   */
+  if (!language) {
+    throw new Error(
+      `GFG programming language could not be detected for "${title}".`,
+    );
+  }
+
+  /**
+   * Return normalized metadata.
+   */
   return {
-    platform: PlatformType.GFG,
+    platform:
+      PlatformType.GFG,
+
     title,
+
     slug,
+
     difficulty,
+
     language,
+
     url,
-    solvedAt: new Date(),
+
+    solvedAt:
+      new Date(),
   };
 }
 
 /**
- * Extract the difficulty from the visible GFG page text.
+ * Extracts the difficulty from the
+ * visible GFG page.
  *
  * Expected examples:
+ *
  * Difficulty: Basic
  * Difficulty: Easy
  * Difficulty: Medium
@@ -81,78 +191,163 @@ export function extractMetadata(
 function extractDifficulty(
   document: Document,
 ): string {
-  // Read the visible text from the complete page.
   const pageText =
-    document.body?.innerText ?? "";
+    document.body?.innerText ??
+    "";
 
-  // Look for "Difficulty:" followed by a known difficulty.
   const match =
     pageText.match(
       /Difficulty\s*:\s*(Basic|Easy|Medium|Hard)/i,
     );
 
-  // Return the detected difficulty.
   if (match?.[1]) {
     return match[1];
   }
 
-  // Difficulty was not detected.
   return "Unknown";
 }
 
 /**
- * Extract the selected programming language.
+ * Extracts the currently selected
+ * GFG programming language.
+ *
+ * GFG's current language dropdown uses:
+ *
+ * role="option"
+ * aria-selected="true"
+ *
+ * Example:
+ *
+ * <div
+ *   role="option"
+ *   aria-selected="true"
+ *   class="active selected item"
+ * >
+ *   <span class="text">Python3</span>
+ * </div>
  */
 function extractLanguage(
   document: Document,
 ): string {
-  // Find all select elements.
-  const selects =
-    Array.from(
-      document.querySelectorAll("select"),
+  /**
+   * First try the GFG language dropdown.
+   *
+   * The class name is generated by GFG,
+   * so we intentionally use a partial
+   * class selector.
+   */
+  const dropdown =
+    document.querySelector(
+      "[class*='problems_language_dropdown']",
     );
 
-  // Check each select element.
-  for (const select of selects) {
-    // Get the currently selected option.
-    const selectedOption =
-      select.selectedOptions[0]
-        ?.textContent
-        ?.trim();
-
-    // Return it if available.
-    if (selectedOption) {
-      return selectedOption;
-    }
-  }
-
-  // Find possible language buttons.
-  const languageCandidates =
-    Array.from(
-      document.querySelectorAll(
-        "button, [role='button']",
-      ),
+  /**
+   * Find the option which GFG marks
+   * as currently selected.
+   */
+  const selectedOption =
+    dropdown?.querySelector(
+      "[role='option'][aria-selected='true']",
     );
 
-  // Check each candidate.
-  for (
-    const element of languageCandidates
-  ) {
-    // Read button text.
-    const text =
-      element.textContent?.trim();
+  /**
+   * Read the selected language text.
+   */
+  const selectedText =
+    selectedOption
+      ?.textContent
+      ?.trim();
 
-    // Check for common programming languages.
-    if (
-      text &&
-      /^(Java|Python|C\+\+|C|JavaScript|Go|Rust|C#)$/i.test(
-        text,
-      )
-    ) {
-      return text;
-    }
+  /**
+   * Convert GFG's language name into
+   * CodeVault's canonical language name.
+   */
+  const language =
+    normalizeLanguage(
+      selectedText,
+    );
+
+  if (language) {
+    return language;
   }
 
-  // Language was not detected.
+  /**
+   * Fallback:
+   *
+   * Search the complete page for the
+   * selected option if the dropdown
+   * class changes.
+   */
+  const globalSelectedOption =
+    document.querySelector(
+      "[role='option'][aria-selected='true']",
+    );
+
+  const globalSelectedText =
+    globalSelectedOption
+      ?.textContent
+      ?.trim();
+
+  const globalLanguage =
+    normalizeLanguage(
+      globalSelectedText,
+    );
+
+  if (globalLanguage) {
+    return globalLanguage;
+  }
+
+  /**
+   * No reliable language was found.
+   */
   return "";
+}
+
+/**
+ * Converts visible GFG language text
+ * into CodeVault's canonical language names.
+ */
+function normalizeLanguage(
+  value:
+    | string
+    | null
+    | undefined,
+): string {
+  if (!value) {
+    return "";
+  }
+
+  /**
+   * Normalize whitespace.
+   *
+   * Example:
+   *
+   * " Python3 "
+   *      ↓
+   * "Python3"
+   */
+  const normalized =
+    value
+      .replace(/\s+/g, " ")
+      .trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  /**
+   * Match against supported languages.
+   */
+  const match =
+    LANGUAGE_PATTERNS.find(
+      ({ pattern }) =>
+        pattern.test(
+          normalized,
+        ),
+    );
+
+  return (
+    match?.value ??
+    ""
+  );
 }
