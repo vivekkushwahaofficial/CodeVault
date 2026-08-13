@@ -12,11 +12,11 @@ This policy is separate from the license governing the CodeVault source code.
 
 ## 2. Ownership and Rights
 
-The CodeVault source code is distributed under the MIT License.
+The CodeVault source code is distributed under the Apache License 2.0.
 
-The MIT License grants rights to use, copy, modify, and distribute the source code as specified in that license. It does **not** grant permission to use the CodeVault name, logo, or other project branding as the branding of another product or service.
+The Apache License 2.0 grants rights to use, copy, modify, and distribute the source code as specified in that license. It does **not** grant permission to use the CodeVault name, logo, or other project branding as the branding of another product or service.
 
-Nothing in this policy modifies, limits, or replaces rights granted by the MIT License with respect to the source code.
+Nothing in this policy modifies, limits, or replaces rights granted by the Apache License 2.0 with respect to the source code.
 
 ## 3. Permitted References
 
@@ -69,13 +69,13 @@ Requests for uses of the CodeVault Marks that are not expressly permitted by thi
 
 Permission, if granted, should be obtained in writing before the proposed use.
 
-## 9. Relationship to the MIT License
+## 9. Relationship to the Apache License 2.0
 
 This policy applies only to the use of the CodeVault Marks.
 
-The CodeVault source code remains subject to the MIT License.
+The CodeVault source code remains subject to the Apache License 2.0.
 
-Nothing in this policy is intended to restrict, modify, or override any rights expressly granted by the MIT License.
+Nothing in this policy is intended to restrict, modify, or override any rights expressly granted by the Apache License 2.0.
 
 ---
 
