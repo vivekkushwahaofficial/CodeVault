@@ -46,4 +46,6 @@ apps/backend/.env
 .env
 
 # Chrome extension private key
+apps/extension/key.pemCodeVault-v1.2.0-chrome.zip
+CodeVault-v1.2.0-chrome.zip
 apps/extension/key.pem
