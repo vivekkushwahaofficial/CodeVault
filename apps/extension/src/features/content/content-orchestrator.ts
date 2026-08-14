@@ -182,7 +182,7 @@ export class ContentOrchestrator {
        *         Solution.ext
        */
       const solutionPackage =
-        buildSolutionPackage(
+        await buildSolutionPackage(
           metadata,
           solution,
           problemStatement,

@@ -1,134 +1,163 @@
 import type { ProblemMetadata } from "../../shared/problem-metadata";
 import { PlatformType } from "../../shared/platform-type";
 import { extractLeetCodeLanguage } from "./leetcode-language";
+import { requestLeetCodeMetadata } from "./leetcode-metadata-bridge";
 
 /**
- * Extracts normalized metadata from the LeetCode submission page.
+ * Extracts the current problem slug from
+ * the browser URL.
  */
-export function extractMetadata(
-  document: Document,
-): ProblemMetadata {
-  /*
-   * LeetCode exposes useful problem metadata inside
-   * the __NEXT_DATA__ script.
-   */
-  const script =
-    document.getElementById(
-      "__NEXT_DATA__",
+function getCurrentProblemSlug(): string {
+
+  const match =
+    window.location.pathname.match(
+      /^\/problems\/([^/]+)/,
     );
 
-  if (!script?.textContent) {
+  if (!match?.[1]) {
+
     throw new Error(
-      "LeetCode __NEXT_DATA__ not found",
+      "LeetCode problem slug could not be determined from current URL.",
     );
   }
 
-  let nextData: any;
+  return decodeURIComponent(
+    match[1],
+  )
+    .trim()
+    .toLowerCase();
+}
 
-  try {
-    nextData =
-      JSON.parse(
-        script.textContent,
+/**
+ * Builds the canonical LeetCode URL.
+ */
+function buildLeetCodeUrl(
+  slug: string,
+): string {
+
+  const currentUrl =
+    new URL(
+      window.location.href,
+    );
+
+  const pathParts =
+    currentUrl.pathname
+      .split("/")
+      .filter(Boolean);
+
+  const problemsIndex =
+    pathParts.indexOf(
+      "problems",
+    );
+
+  if (
+    problemsIndex !== -1 &&
+    pathParts.length >
+    problemsIndex + 1
+  ) {
+
+    const remainingPath =
+      pathParts.slice(
+        problemsIndex + 1,
       );
-  } catch {
+
+    const submissionIndex =
+      remainingPath.indexOf(
+        "submissions",
+      );
+
+    if (
+      submissionIndex !== -1 &&
+      remainingPath.length >
+      submissionIndex + 1
+    ) {
+
+      const submissionId =
+        remainingPath[
+        submissionIndex + 1
+        ];
+
+      return `https://leetcode.com/problems/${slug}/submissions/${submissionId}/`;
+    }
+  }
+
+  return `https://leetcode.com/problems/${slug}/`;
+}
+
+/**
+ * Extracts normalized metadata from the
+ * CURRENT LeetCode problem.
+ *
+ * The current URL is the source of truth.
+ * Metadata is fetched using that exact slug.
+ */
+export async function extractMetadata(
+  _document: Document,
+): Promise<ProblemMetadata> {
+
+  const currentSlug =
+    getCurrentProblemSlug();
+
+  console.log(
+    "[CodeVault] Extracting metadata for:",
+    currentSlug,
+  );
+
+  /*
+   * Get metadata for the exact problem currently
+   * represented by the URL.
+   */
+  const metadata =
+    await requestLeetCodeMetadata(
+      currentSlug,
+    );
+
+  /*
+   * Final identity validation.
+   */
+  const metadataSlug =
+    metadata.titleSlug
+      .trim()
+      .toLowerCase();
+
+  if (
+    metadataSlug !==
+    currentSlug
+  ) {
+
     throw new Error(
-      "Failed to parse LeetCode __NEXT_DATA__",
+      `LeetCode metadata belongs to "${metadataSlug}", but current problem is "${currentSlug}".`,
     );
   }
 
-  /*
-   * Find the dehydrated React Query state.
-   */
-  const queries =
-    nextData
-      ?.props
-      ?.pageProps
-      ?.dehydratedState
-      ?.queries;
-
-  if (!Array.isArray(queries)) {
-    throw new Error(
-      "LeetCode queries not found",
-    );
-  }
-
-  /*
-   * Find the questionDetail query.
-   */
-  const questionQuery =
-    queries.find(
-      (query: any) =>
-        Array.isArray(query?.queryKey) &&
-        query.queryKey[0] ===
-          "questionDetail",
-    );
-
-  if (!questionQuery) {
-    throw new Error(
-      "LeetCode questionDetail query not found",
-    );
-  }
-
-  /*
-   * Extract the actual question object.
-   */
-  const question =
-    questionQuery
-      ?.state
-      ?.data
-      ?.question;
-
-  if (!question) {
-    throw new Error(
-      "LeetCode question metadata not found",
-    );
-  }
-
-  /*
-   * Validate the mandatory problem fields.
-   */
   const title =
-    typeof question.title === "string"
-      ? question.title.trim()
-      : "";
-
-  const slug =
-    typeof question.titleSlug === "string"
-      ? question.titleSlug.trim()
-      : "";
+    metadata.title.trim();
 
   const difficulty =
-    typeof question.difficulty === "string"
-      ? question.difficulty
-          .trim()
-          .toLowerCase()
-      : "";
+    metadata.difficulty
+      .trim()
+      .toLowerCase();
 
   if (!title) {
-    throw new Error(
-      "LeetCode problem title not found",
-    );
-  }
 
-  if (!slug) {
     throw new Error(
-      `LeetCode problem slug not found for "${title}"`,
+      `LeetCode problem title not found for "${currentSlug}".`,
     );
   }
 
   if (!difficulty) {
+
     throw new Error(
-      `LeetCode difficulty not found for "${title}"`,
+      `LeetCode difficulty not found for "${title}".`,
     );
   }
 
   /*
-   * Extract the actual selected language from
-   * the submission/editor UI.
+   * Language still comes from the current editor UI.
    */
   const language =
     extractLeetCodeLanguage(
-      document,
+      _document,
     );
 
   console.log(
@@ -136,36 +165,38 @@ export function extractMetadata(
     language || "NOT FOUND",
   );
 
-  /*
-   * Do not allow incomplete metadata to continue.
-   *
-   * ContentOrchestrator performs the final validation,
-   * but failing here gives us a platform-specific error
-   * that is much easier to debug.
-   */
   if (!language) {
+
     throw new Error(
       `LeetCode programming language could not be detected for "${title}".`,
     );
   }
 
-  /*
-   * Return normalized metadata.
-   */
+  const url =
+    buildLeetCodeUrl(
+      currentSlug,
+    );
+
+  console.log(
+    "[CodeVault] LeetCode URL:",
+    url,
+  );
+
   return {
+
     platform:
       PlatformType.LEETCODE,
 
     title,
 
-    slug,
+    slug:
+      currentSlug,
 
     difficulty,
 
     language,
 
-    url:
-      window.location.href,
+    url,
 
     solvedAt:
       new Date(),
