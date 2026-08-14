@@ -6,30 +6,85 @@ import type {
 } from "../sync/types/solution-package";
 
 /**
- * Maximum number of attempts used when the target branch
- * changes while CodeVault is creating the commit.
- *
- * Attempt 1 = normal synchronization.
- * Attempt 2 = retry against the latest branch state.
+ * Maximum number of times CodeVault will rebuild
+ * the synchronization against a changed branch.
  */
-const MAX_COMMIT_ATTEMPTS = 2;
+const MAX_SYNC_ATTEMPTS = 3;
+
+/**
+ * Maximum number of times CodeVault will retry
+ * updating the same GitHub reference.
+ *
+ * This handles GitHub's temporary ref propagation
+ * / non-fast-forward response when the branch has
+ * NOT actually changed.
+ */
+const MAX_REF_UPDATE_ATTEMPTS = 3;
+
+/**
+ * GitHub API error shape used for safe error handling.
+ */
+type GithubApiError = {
+  status?: number;
+  message?: string;
+  response?: {
+    data?: {
+      message?: string;
+      errors?: unknown;
+      documentation_url?: string;
+    };
+  };
+};
+
+/**
+ * Wait before retrying a GitHub API operation.
+ *
+ * 500 ms
+ * 1000 ms
+ * 2000 ms
+ */
+function waitBeforeRetry(
+  attempt: number,
+): Promise<void> {
+
+  const delay =
+    500 * Math.pow(
+      2,
+      attempt - 1,
+    );
+
+  return new Promise(
+    (resolve) => {
+      setTimeout(
+        resolve,
+        delay,
+      );
+    },
+  );
+}
 
 /**
  * Creates one Git commit containing all files
  * from a SolutionPackage.
  *
- * The operation is optimistic:
+ * Workflow:
  *
- * 1. Read the current branch.
- * 2. Build the tree from that branch.
- * 3. Create a commit whose parent is that branch commit.
- * 4. Move the branch to the new commit.
+ * 1. Validate GitHub configuration.
+ * 2. Create blobs.
+ * 3. Read current branch HEAD.
+ * 4. Create tree.
+ * 5. Create commit.
+ * 6. Verify commit parent.
+ * 7. Update branch reference.
  *
- * If the branch changes between steps 1 and 4,
- * GitHub may reject the reference update with 422.
+ * Important:
  *
- * In that case CodeVault rebuilds the commit against
- * the latest branch state and retries once.
+ * If GitHub rejects updateRef with 422 but the
+ * branch has NOT changed, CodeVault retries the
+ * SAME commit instead of creating another commit.
+ *
+ * If the branch HAS changed, CodeVault rebuilds
+ * the commit against the latest branch state.
  */
 export async function commitSolution(
   solution: SolutionPackage,
@@ -70,7 +125,7 @@ export async function commitSolution(
 
   /*
    * --------------------------------------------------
-   * 2. Validate the solution package.
+   * 2. Validate solution package.
    * --------------------------------------------------
    */
 
@@ -83,9 +138,7 @@ export async function commitSolution(
     );
   }
 
-  if (
-    !solution.commitMessage?.trim()
-  ) {
+  if (!solution.commitMessage?.trim()) {
     throw new Error(
       "GitHub commit message is missing.",
     );
@@ -158,9 +211,9 @@ export async function commitSolution(
    * 4. Create blobs once.
    * --------------------------------------------------
    *
-   * Blobs are independent of the branch's current
-   * commit, so they can safely be reused if a retry
-   * is required.
+   * Blobs are independent from branch state.
+   * They can therefore be reused when a commit
+   * needs to be rebuilt.
    */
 
   const treeEntries: {
@@ -210,94 +263,52 @@ export async function commitSolution(
 
     } catch (error) {
 
+      const githubError =
+        error as GithubApiError;
+
+      const message =
+        githubError.response?.data?.message ??
+        githubError.message ??
+        "Unknown GitHub error.";
+
       throw new Error(
-        `[GitHub] Failed to prepare file "${file.path}". ${error instanceof Error
-          ? error.message
-          : "Unknown GitHub error."
-        }`,
+        `[GitHub] Failed to prepare file "${file.path}". ${message}`,
       );
     }
   }
 
   /*
    * --------------------------------------------------
-   * 5. Attempt synchronization.
+   * 5. Synchronization attempts.
    * --------------------------------------------------
    *
-   * The complete tree + commit operation is repeated
-   * when the branch changes concurrently.
+   * Each synchronization attempt represents one
+   * complete commit rebuild against a branch HEAD.
    */
 
   for (
-    let attempt = 1;
-    attempt <= MAX_COMMIT_ATTEMPTS;
-    attempt++
+    let syncAttempt = 1;
+    syncAttempt <= MAX_SYNC_ATTEMPTS;
+    syncAttempt++
   ) {
 
     console.log(
-      `[GitHub] Synchronization attempt ${attempt}/${MAX_COMMIT_ATTEMPTS}`,
+      `[GitHub] Synchronization attempt ${syncAttempt}/${MAX_SYNC_ATTEMPTS}`,
     );
 
     /*
      * ------------------------------------------------
-     * 5.1 Get the CURRENT branch reference.
+     * 5.1 Read current branch HEAD.
      * ------------------------------------------------
-     *
-     * This is intentionally executed on every retry.
-     *
-     * We must never reuse a stale branch SHA.
      */
 
-    let branchReference;
-
-    try {
-
-      branchReference =
-        await github.git.getRef({
-          owner:
-            settings.owner,
-
-          repo:
-            settings.repo,
-
-          ref:
-            `heads/${settings.branch}`,
-        });
-
-    } catch (error) {
-
-      const status =
-        (
-          error as {
-            status?: number;
-          }
-        ).status;
-
-      if (status === 404) {
-        throw new Error(
-          `[GitHub] Branch "${settings.branch}" was not found in repository "${settings.owner}/${settings.repo}". Please check your repository and branch settings.`,
-        );
-      }
-
-      if (status === 401) {
-        throw new Error(
-          "[GitHub] Authentication failed while accessing the repository. Please reconnect GitHub.",
-        );
-      }
-
-      if (status === 403) {
-        throw new Error(
-          `[GitHub] Permission denied for "${settings.owner}/${settings.repo}". Please make sure the connected GitHub account can write to this repository.`,
-        );
-      }
-
-      throw new Error(
-        `[GitHub] Failed to read branch "${settings.branch}". ${error instanceof Error
-          ? error.message
-          : "Unknown GitHub error."
-        }`,
+    const branchReference =
+      await getCurrentBranchReference(
+        github,
+        settings.owner,
+        settings.repo,
+        settings.branch,
       );
-    }
 
     const currentCommitSha =
       branchReference.data.object.sha;
@@ -309,7 +320,7 @@ export async function commitSolution(
 
     /*
      * ------------------------------------------------
-     * 5.2 Get the current commit.
+     * 5.2 Read current commit.
      * ------------------------------------------------
      */
 
@@ -331,24 +342,16 @@ export async function commitSolution(
 
     } catch (error) {
 
-      const status =
-        (
-          error as {
-            status?: number;
-          }
-        ).status;
+      const githubError =
+        error as GithubApiError;
 
-      if (status === 404) {
-        throw new Error(
-          `[GitHub] The current commit "${currentCommitSha}" could not be found. The repository may have changed while CodeVault was synchronizing.`,
-        );
-      }
+      const message =
+        githubError.response?.data?.message ??
+        githubError.message ??
+        "Unknown GitHub error.";
 
       throw new Error(
-        `[GitHub] Failed to read the current repository commit. ${error instanceof Error
-          ? error.message
-          : "Unknown GitHub error."
-        }`,
+        `[GitHub] Failed to read the current repository commit. ${message}`,
       );
     }
 
@@ -362,11 +365,8 @@ export async function commitSolution(
 
     /*
      * ------------------------------------------------
-     * 5.3 Create a NEW tree against the latest
-     *     branch tree.
+     * 5.3 Create tree.
      * ------------------------------------------------
-     *
-     * This must happen again after a conflict.
      */
 
     let newTree;
@@ -390,11 +390,16 @@ export async function commitSolution(
 
     } catch (error) {
 
+      const githubError =
+        error as GithubApiError;
+
+      const message =
+        githubError.response?.data?.message ??
+        githubError.message ??
+        "Unknown GitHub error.";
+
       throw new Error(
-        `[GitHub] Failed to create the repository tree. ${error instanceof Error
-          ? error.message
-          : "Unknown GitHub error."
-        }`,
+        `[GitHub] Failed to create the repository tree. ${message}`,
       );
     }
 
@@ -405,8 +410,7 @@ export async function commitSolution(
 
     /*
      * ------------------------------------------------
-     * 5.4 Create a NEW commit whose parent is the
-     *     CURRENT branch commit.
+     * 5.4 Create commit.
      * ------------------------------------------------
      */
 
@@ -435,11 +439,16 @@ export async function commitSolution(
 
     } catch (error) {
 
+      const githubError =
+        error as GithubApiError;
+
+      const message =
+        githubError.response?.data?.message ??
+        githubError.message ??
+        "Unknown GitHub error.";
+
       throw new Error(
-        `[GitHub] Failed to create commit "${solution.commitMessage}". ${error instanceof Error
-          ? error.message
-          : "Unknown GitHub error."
-        }`,
+        `[GitHub] Failed to create commit "${solution.commitMessage}". ${message}`,
       );
     }
 
@@ -450,134 +459,423 @@ export async function commitSolution(
 
     /*
      * ------------------------------------------------
-     * 5.5 Move the branch to the new commit.
+     * 5.5 Verify commit parent.
      * ------------------------------------------------
      */
 
-    try {
+    const parentSha =
+      newCommit.data.parents?.[0]?.sha;
 
-      await github.git.updateRef({
-        owner:
-          settings.owner,
-
-        repo:
-          settings.repo,
-
-        ref:
-          `heads/${settings.branch}`,
-
-        sha:
-          newCommit.data.sha,
-
-        force:
-          false,
-      });
-
-      /*
-       * Branch update succeeded.
-       *
-       * The complete synchronization is finished.
-       */
-
-      console.log(
-        "================================",
-      );
-
-      console.log(
-        "🚀 GitHub commit completed",
-      );
-
-      console.log(
-        "Commit:",
-        solution.commitMessage,
-      );
-
-      console.log(
-        "Commit SHA:",
-        newCommit.data.sha,
-      );
-
-      console.log(
-        "Files committed:",
-        solution.files.length,
-      );
-
-      console.log(
-        "Synchronization attempts:",
-        attempt,
-      );
-
-      console.log(
-        "================================",
-      );
-
-      return;
-
-    } catch (error) {
-
-      const status =
-        (
-          error as {
-            status?: number;
-          }
-        ).status;
-
-      /*
-       * ------------------------------------------------
-       * 5.6 Handle concurrent branch modification.
-       * ------------------------------------------------
-       *
-       * GitHub rejected the update because the branch
-       * moved after we read it.
-       *
-       * Retry the ENTIRE tree/commit construction
-       * against the latest branch state.
-       */
-
-      if (
-        status === 422 &&
-        attempt < MAX_COMMIT_ATTEMPTS
-      ) {
-
-        console.warn(
-          `[GitHub] Branch "${settings.branch}" changed during synchronization. Rebuilding against the latest branch state.`,
-        );
-
-        continue;
-      }
-
-      /*
-       * The retry has already been consumed.
-       */
-
-      if (status === 422) {
-
-        throw new Error(
-          `[GitHub] The branch "${settings.branch}" changed while CodeVault was synchronizing. The synchronization was retried once but could not be completed safely. Please retry.`,
-        );
-      }
-
-      if (status === 403) {
-
-        throw new Error(
-          `[GitHub] Permission denied while updating branch "${settings.branch}". Please make sure the connected GitHub account has write access.`,
-        );
-      }
+    if (
+      parentSha !==
+      currentCommitSha
+    ) {
 
       throw new Error(
-        `[GitHub] Failed to update branch "${settings.branch}". ${error instanceof Error
-          ? error.message
-          : "Unknown GitHub error."
-        }`,
+        `[GitHub] Commit parent mismatch. Expected parent "${currentCommitSha}", received "${parentSha ?? "none"}".`,
       );
+    }
+
+    console.log(
+      "[GitHub] Commit parent verified:",
+      parentSha,
+    );
+
+    /*
+     * ------------------------------------------------
+     * 5.6 Update branch reference.
+     * ------------------------------------------------
+     *
+     * IMPORTANT:
+     *
+     * If updateRef fails because the branch has not
+     * changed, retry THIS SAME commit.
+     *
+     * Do NOT create another commit.
+     */
+
+    let rebuildRequired =
+      false;
+
+    for (
+      let refAttempt = 1;
+      refAttempt <= MAX_REF_UPDATE_ATTEMPTS;
+      refAttempt++
+    ) {
+
+      try {
+
+        console.log(
+          `[GitHub] Updating branch "${settings.branch}" to commit ${newCommit.data.sha} (ref attempt ${refAttempt}/${MAX_REF_UPDATE_ATTEMPTS})`,
+        );
+
+        await github.git.updateRef({
+          owner:
+            settings.owner,
+
+          repo:
+            settings.repo,
+
+          ref:
+            `heads/${settings.branch}`,
+
+          sha:
+            newCommit.data.sha,
+
+          /*
+           * Never force-update the branch.
+           *
+           * This protects unrelated repository history.
+           */
+          force:
+            false,
+        });
+
+        /*
+         * ------------------------------------------------
+         * SUCCESS
+         * ------------------------------------------------
+         */
+
+        console.log(
+          "================================",
+        );
+
+        console.log(
+          "🚀 GitHub commit completed",
+        );
+
+        console.log(
+          "Commit:",
+          solution.commitMessage,
+        );
+
+        console.log(
+          "Commit SHA:",
+          newCommit.data.sha,
+        );
+
+        console.log(
+          "Files committed:",
+          solution.files.length,
+        );
+
+        console.log(
+          "Synchronization attempt:",
+          syncAttempt,
+        );
+
+        console.log(
+          "Reference update attempt:",
+          refAttempt,
+        );
+
+        console.log(
+          "================================",
+        );
+
+        return;
+
+      } catch (error) {
+
+        const githubError =
+          error as GithubApiError;
+
+        const status =
+          githubError.status;
+
+        const apiMessage =
+          githubError.response?.data?.message ??
+          githubError.message ??
+          "Unknown GitHub error.";
+
+        /*
+         * Log useful GitHub information.
+         */
+        console.error(
+          "[GitHub] Branch update failed:",
+          {
+            status,
+
+            message:
+              apiMessage,
+
+            branch:
+              settings.branch,
+
+            expectedParent:
+              currentCommitSha,
+
+            newCommit:
+              newCommit.data.sha,
+
+            errors:
+              githubError.response?.data?.errors,
+
+            documentationUrl:
+              githubError.response?.data?.documentation_url,
+          },
+        );
+
+        /*
+         * Only 409 and known 422 non-fast-forward
+         * errors are candidates for synchronization
+         * recovery.
+         */
+        const isNonFastForward =
+          status === 422 &&
+          apiMessage
+            .toLowerCase()
+            .includes(
+              "update is not a fast forward",
+            );
+
+        const isRetryableConflict =
+          status === 409 ||
+          isNonFastForward;
+
+        if (!isRetryableConflict) {
+
+          if (status === 401) {
+            throw new Error(
+              "[GitHub] Authentication failed while updating the repository. Please reconnect GitHub.",
+            );
+          }
+
+          if (status === 403) {
+            throw new Error(
+              `[GitHub] Permission denied while updating branch "${settings.branch}". Please make sure the connected GitHub account has write access.`,
+            );
+          }
+
+          if (status === 404) {
+            throw new Error(
+              `[GitHub] Branch "${settings.branch}" was not found in repository "${settings.owner}/${settings.repo}".`,
+            );
+          }
+
+          if (status === 422) {
+            throw new Error(
+              `[GitHub] GitHub rejected the branch update (422): ${apiMessage}`,
+            );
+          }
+
+          throw new Error(
+            `[GitHub] Failed to update branch "${settings.branch}". ${apiMessage}`,
+          );
+        }
+
+        /*
+         * ------------------------------------------------
+         * Check the branch HEAD.
+         * ------------------------------------------------
+         *
+         * This is the critical distinction:
+         *
+         * SAME HEAD
+         *   → retry SAME commit
+         *
+         * DIFFERENT HEAD
+         *   → rebuild synchronization
+         */
+
+        const latestBranchReference =
+          await getCurrentBranchReference(
+            github,
+            settings.owner,
+            settings.repo,
+            settings.branch,
+          );
+
+        const latestCommitSha =
+          latestBranchReference.data.object.sha;
+
+        console.log(
+          "[GitHub] Latest branch commit after conflict:",
+          latestCommitSha,
+        );
+
+        /*
+         * -----------------------------------------------
+         * CASE 1:
+         *
+         * Branch changed.
+         *
+         * The commit we created is based on an old
+         * branch state, so it must be rebuilt.
+         * -----------------------------------------------
+         */
+
+        if (
+          latestCommitSha !==
+          currentCommitSha
+        ) {
+
+          console.warn(
+            `[GitHub] Branch "${settings.branch}" changed from ${currentCommitSha} to ${latestCommitSha}. Rebuilding against the latest branch state.`,
+          );
+
+          rebuildRequired =
+            true;
+
+          break;
+        }
+
+        /*
+         * -----------------------------------------------
+         * CASE 2:
+         *
+         * Branch did NOT change.
+         *
+         * The commit is still based on the correct
+         * parent.
+         *
+         * Do NOT create another commit.
+         *
+         * Retry updateRef with the SAME commit SHA.
+         * -----------------------------------------------
+         */
+
+        console.warn(
+          `[GitHub] Branch "${settings.branch}" did not change. Retrying the SAME commit ${newCommit.data.sha}.`,
+        );
+
+        if (
+          refAttempt <
+          MAX_REF_UPDATE_ATTEMPTS
+        ) {
+
+          await waitBeforeRetry(
+            refAttempt,
+          );
+
+          continue;
+        }
+
+        /*
+         * We exhausted reference retries.
+         */
+
+        throw new Error(
+          `[GitHub] GitHub rejected the branch update after ${MAX_REF_UPDATE_ATTEMPTS} attempts, although branch "${settings.branch}" did not change. Last error: ${apiMessage}`,
+        );
+      }
+    }
+
+    /*
+     * ------------------------------------------------
+     * 5.7 Rebuild only when the branch actually changed.
+     * ------------------------------------------------
+     */
+
+    if (rebuildRequired) {
+
+      if (
+        syncAttempt >=
+        MAX_SYNC_ATTEMPTS
+      ) {
+
+        throw new Error(
+          `[GitHub] Synchronization could not complete because branch "${settings.branch}" changed repeatedly.`,
+        );
+      }
+
+      /*
+       * Small delay before rebuilding.
+       */
+      await waitBeforeRetry(
+        syncAttempt,
+      );
+
+      continue;
     }
   }
 
   /*
-   * This point should never be reached because either
-   * the operation returns successfully or throws.
+   * This should never be reached.
    */
   throw new Error(
     "[GitHub] Synchronization failed unexpectedly.",
+  );
+}
+
+/**
+ * Reads the current branch reference.
+ */
+async function getCurrentBranchReference(
+  github: Awaited<
+    ReturnType<typeof getGithubClient>
+  >,
+  owner: string,
+  repo: string,
+  branch: string,
+) {
+
+  try {
+
+    return await github.git.getRef({
+      owner,
+
+      repo,
+
+      ref:
+        `heads/${branch}`,
+    });
+
+  } catch (error) {
+
+    throw createGithubReadError(
+      error,
+      owner,
+      repo,
+      branch,
+    );
+  }
+}
+
+/**
+ * Creates a clear error for GitHub branch reads.
+ */
+function createGithubReadError(
+  error: unknown,
+  owner: string,
+  repo: string,
+  branch: string,
+): Error {
+
+  const githubError =
+    error as GithubApiError;
+
+  const status =
+    githubError.status;
+
+  const message =
+    githubError.response?.data?.message ??
+    githubError.message ??
+    "Unknown GitHub error.";
+
+  if (status === 404) {
+
+    return new Error(
+      `[GitHub] Branch "${branch}" was not found in repository "${owner}/${repo}". Please check your repository and branch settings.`,
+    );
+  }
+
+  if (status === 401) {
+
+    return new Error(
+      "[GitHub] Authentication failed while accessing the repository. Please reconnect GitHub.",
+    );
+  }
+
+  if (status === 403) {
+
+    return new Error(
+      `[GitHub] Permission denied for "${owner}/${repo}". Please make sure the connected GitHub account can write to this repository.`,
+    );
+  }
+
+  return new Error(
+    `[GitHub] Failed to read branch "${branch}". ${message}`,
   );
 }

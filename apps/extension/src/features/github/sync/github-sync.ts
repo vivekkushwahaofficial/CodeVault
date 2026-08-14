@@ -2,138 +2,143 @@ import { commitSolution } from "../services/github-commit-service";
 
 import type { SolutionPackage } from "./types/solution-package";
 
-
 export interface SyncResult {
-
   success: boolean;
-
   message: string;
-
 }
 
+/**
+ * Global synchronization queue.
+ *
+ * Every GitHub synchronization goes through this queue.
+ *
+ * This is important when the user submits multiple
+ * solutions without refreshing the coding-platform page.
+ *
+ * Example:
+ *
+ * Java submission
+ *      ↓
+ * GitHub Sync A
+ *      ↓
+ * completed
+ *      ↓
+ * C++ submission
+ *      ↓
+ * GitHub Sync B
+ *      ↓
+ * completed
+ *
+ * Therefore two GitHub branch updates can never happen
+ * concurrently.
+ */
+let syncQueue: Promise<void> = Promise.resolve();
 
-export async function syncSolution(
+/**
+ * Synchronizes one solution with GitHub.
+ *
+ * Every synchronization is serialized through the
+ * global queue.
+ */
+export function syncSolution(
   solution: SolutionPackage,
 ): Promise<SyncResult> {
 
+  /*
+   * Add this synchronization to the end of the queue.
+   *
+   * If nothing is running:
+   *
+   *     execute immediately.
+   *
+   * If another synchronization is running:
+   *
+   *     wait until it finishes.
+   */
+  const queuedSync =
+    syncQueue.then(
+      async () => {
 
-  console.log(
-    "🔄 Starting GitHub Sync",
-  );
+        console.log(
+          "[CodeVault] 🔒 GitHub sync entered queue.",
+        );
 
+        console.log(
+          "[CodeVault] 📦 Synchronizing:",
+          {
+            platform:
+              solution.metadata.platform,
 
-  console.log(
-    "Solution Package:",
-    solution,
-  );
+            title:
+              solution.metadata.title,
 
+            language:
+              solution.metadata.language,
+          },
+        );
 
+        /*
+         * Execute the actual GitHub synchronization.
+         */
+        await commitSolution(
+          solution,
+        );
 
-  if (
-    !solution.files ||
-    solution.files.length === 0
-  ) {
-
-    throw new Error(
-      "No files to synchronize.",
+        console.log(
+          "[CodeVault] 🔓 GitHub sync completed.",
+        );
+      },
     );
 
-  }
-
-
-
-  for (const file of solution.files) {
-
-
-    console.log(
-      "Checking file:",
-      file.path,
+  /*
+   * IMPORTANT:
+   *
+   * Keep the queue alive even if this synchronization
+   * fails.
+   *
+   * Otherwise one failed synchronization would poison
+   * the entire queue and every future submission would
+   * remain blocked.
+   */
+  syncQueue =
+    queuedSync.then(
+      () => undefined,
+      () => undefined,
     );
 
+  /*
+   * Return the original promise.
+   *
+   * Therefore the caller still receives the actual
+   * success/failure of THIS synchronization.
+   */
+  return queuedSync
+    .then(
+      () => ({
+        success:
+          true,
 
+        message:
+          "Solution committed successfully.",
+      }),
+    )
+    .catch(
+      (error) => {
 
-    if (!file.path.trim()) {
+        console.error(
+          "[CodeVault] GitHub sync failed:",
+          error,
+        );
 
-      throw new Error(
-        "A file path is missing.",
-      );
+        return {
+          success:
+            false,
 
-    }
-
-
-
-    if (!file.content.trim()) {
-
-      throw new Error(
-        `File "${file.path}" is empty.`,
-      );
-
-    }
-
-
-  }
-
-
-
-  if (
-    !solution.commitMessage ||
-    !solution.commitMessage.trim()
-  ) {
-
-    throw new Error(
-      "Commit message is missing.",
+          message:
+            error instanceof Error
+              ? error.message
+              : "GitHub synchronization failed.",
+        };
+      },
     );
-
-  }
-
-
-
-  console.log(
-    "✅ Validation passed",
-  );
-
-
-
-  console.log(
-    "📂 Files before GitHub upload:",
-  );
-
-
-
-  solution.files.forEach(
-    (file) => {
-
-      console.log(
-        "PATH:",
-        file.path,
-      );
-
-
-    },
-  );
-
-
-
-  await commitSolution(
-    solution,
-  );
-
-
-
-  console.log(
-    "🚀 GitHub sync completed",
-  );
-
-
-
-  return {
-
-    success: true,
-
-    message:
-      "Solution committed successfully.",
-
-  };
-
-
 }

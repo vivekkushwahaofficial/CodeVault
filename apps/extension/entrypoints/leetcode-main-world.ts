@@ -242,8 +242,7 @@ export default defineUnlistedScript(() => {
   ): Promise<LeetCodeMetadata> {
 
     const timeoutMs =
-      10_000;
-
+      5_000;
     const intervalMs =
       200;
 
