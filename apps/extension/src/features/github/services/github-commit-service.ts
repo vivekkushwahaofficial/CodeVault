@@ -37,6 +37,52 @@ type GithubApiError = {
 };
 
 /**
+ * Convert UTF-8 text to Base64.
+ *
+ * Browser-safe replacement for:
+ *
+ * Buffer.from(content, "utf-8").toString("base64")
+ *
+ * CodeVault runs inside a browser extension, so
+ * Node.js Buffer is not available here.
+ */
+function encodeBase64Utf8(
+  content: string,
+): string {
+
+  const bytes =
+    new TextEncoder().encode(
+      content,
+    );
+
+  let binary = "";
+
+  const CHUNK_SIZE = 0x8000;
+
+  for (
+    let i = 0;
+    i < bytes.length;
+    i += CHUNK_SIZE
+  ) {
+
+    const chunk =
+      bytes.subarray(
+        i,
+        Math.min(
+          i + CHUNK_SIZE,
+          bytes.length,
+        ),
+      );
+
+    binary += String.fromCharCode(
+      ...chunk,
+    );
+  }
+
+  return btoa(binary);
+}
+
+/**
  * Wait before retrying a GitHub API operation.
  *
  * 500 ms
@@ -77,14 +123,13 @@ function waitBeforeRetry(
  * 6. Verify commit parent.
  * 7. Update branch reference.
  *
- * Important:
+ * Empty repository handling:
  *
- * If GitHub rejects updateRef with 422 but the
- * branch has NOT changed, CodeVault retries the
- * SAME commit instead of creating another commit.
+ * If GitHub reports that the Git repository is empty,
+ * CodeVault initializes it through the Contents API.
  *
- * If the branch HAS changed, CodeVault rebuilds
- * the commit against the latest branch state.
+ * After initialization, the existing Git Database
+ * synchronization pipeline continues unchanged.
  */
 export async function commitSolution(
   solution: SolutionPackage,
@@ -135,6 +180,15 @@ export async function commitSolution(
   ) {
     throw new Error(
       "No files to commit.",
+    );
+  }
+
+  const bootstrapFile =
+    solution.files[0];
+
+  if (!bootstrapFile) {
+    throw new Error(
+      "Unable to initialize repository because the first solution file is missing.",
     );
   }
 
@@ -214,66 +268,139 @@ export async function commitSolution(
    * Blobs are independent from branch state.
    * They can therefore be reused when a commit
    * needs to be rebuilt.
+   *
+   * IMPORTANT:
+   *
+   * GitHub returns 409 when the repository has
+   * no Git history yet.
+   *
+   * In that case we initialize the repository
+   * through the Contents API and retry this
+   * exact blob creation stage.
    */
 
-  const treeEntries: {
-    path: string;
-    mode: "100644";
-    type: "blob";
-    sha: string;
-  }[] = [];
+  let treeEntries:
+    {
+      path: string;
+      mode: "100644";
+      type: "blob";
+      sha: string;
+    }[] = [];
 
-  for (const file of solution.files) {
+  let repositoryInitialized =
+    false;
 
-    console.log(
-      "[GitHub] Creating blob:",
-      file.path,
-    );
+  for (; ;) {
 
     try {
 
-      const blob =
-        await github.git.createBlob({
-          owner:
-            settings.owner,
+      treeEntries = [];
 
-          repo:
-            settings.repo,
+      for (const file of solution.files) {
 
-          content:
-            file.content,
-
-          encoding:
-            "utf-8",
-        });
-
-      treeEntries.push({
-        path:
+        console.log(
+          "[GitHub] Creating blob:",
           file.path,
+        );
 
-        mode:
-          "100644",
+        const blob =
+          await github.git.createBlob({
+            owner:
+              settings.owner,
 
-        type:
-          "blob",
+            repo:
+              settings.repo,
 
-        sha:
-          blob.data.sha,
-      });
+            content:
+              file.content,
+
+            encoding:
+              "utf-8",
+          });
+
+        treeEntries.push({
+          path:
+            file.path,
+
+          mode:
+            "100644",
+
+          type:
+            "blob",
+
+          sha:
+            blob.data.sha,
+        });
+      }
+
+      /*
+       * Blob creation succeeded.
+       *
+       * The repository already has Git history,
+       * or it has just been initialized.
+       */
+      break;
 
     } catch (error) {
 
       const githubError =
         error as GithubApiError;
 
+      const status =
+        githubError.status;
+
       const message =
         githubError.response?.data?.message ??
         githubError.message ??
         "Unknown GitHub error.";
 
-      throw new Error(
-        `[GitHub] Failed to prepare file "${file.path}". ${message}`,
+      /*
+       * Only handle 409 here.
+       *
+       * A 401, 403, 404, 422, etc. must continue
+       * through normal error handling.
+       */
+      if (
+        status !== 409 ||
+        repositoryInitialized
+      ) {
+
+        throw new Error(
+          `[GitHub] Failed to prepare repository files. ${message}`,
+        );
+      }
+
+      console.warn(
+        "[GitHub] Repository has no Git history. Initializing empty repository.",
       );
+
+      /*
+       * ------------------------------------------------
+       * Initialize empty repository.
+       * ------------------------------------------------
+       */
+
+      await initializeEmptyRepository(
+        github,
+        settings.owner,
+        settings.repo,
+        settings.branch,
+        bootstrapFile,
+      );
+
+      repositoryInitialized =
+        true;
+
+      console.log(
+        "[GitHub] Empty repository initialized successfully.",
+      );
+
+      /*
+       * Give GitHub a short moment to propagate
+       * the newly-created branch/reference before
+       * continuing with the existing pipeline.
+       */
+      await waitBeforeRetry(1);
     }
   }
 
@@ -281,9 +408,6 @@ export async function commitSolution(
    * --------------------------------------------------
    * 5. Synchronization attempts.
    * --------------------------------------------------
-   *
-   * Each synchronization attempt represents one
-   * complete commit rebuild against a branch HEAD.
    */
 
   for (
@@ -485,13 +609,6 @@ export async function commitSolution(
      * ------------------------------------------------
      * 5.6 Update branch reference.
      * ------------------------------------------------
-     *
-     * IMPORTANT:
-     *
-     * If updateRef fails because the branch has not
-     * changed, retry THIS SAME commit.
-     *
-     * Do NOT create another commit.
      */
 
     let rebuildRequired =
@@ -522,11 +639,6 @@ export async function commitSolution(
           sha:
             newCommit.data.sha,
 
-          /*
-           * Never force-update the branch.
-           *
-           * This protects unrelated repository history.
-           */
           force:
             false,
         });
@@ -589,9 +701,6 @@ export async function commitSolution(
           githubError.message ??
           "Unknown GitHub error.";
 
-        /*
-         * Log useful GitHub information.
-         */
         console.error(
           "[GitHub] Branch update failed:",
           {
@@ -617,11 +726,6 @@ export async function commitSolution(
           },
         );
 
-        /*
-         * Only 409 and known 422 non-fast-forward
-         * errors are candidates for synchronization
-         * recovery.
-         */
         const isNonFastForward =
           status === 422 &&
           apiMessage
@@ -669,14 +773,6 @@ export async function commitSolution(
          * ------------------------------------------------
          * Check the branch HEAD.
          * ------------------------------------------------
-         *
-         * This is the critical distinction:
-         *
-         * SAME HEAD
-         *   → retry SAME commit
-         *
-         * DIFFERENT HEAD
-         *   → rebuild synchronization
          */
 
         const latestBranchReference =
@@ -696,14 +792,11 @@ export async function commitSolution(
         );
 
         /*
-         * -----------------------------------------------
          * CASE 1:
          *
          * Branch changed.
          *
-         * The commit we created is based on an old
-         * branch state, so it must be rebuilt.
-         * -----------------------------------------------
+         * Rebuild against latest branch state.
          */
 
         if (
@@ -722,18 +815,11 @@ export async function commitSolution(
         }
 
         /*
-         * -----------------------------------------------
          * CASE 2:
          *
          * Branch did NOT change.
          *
-         * The commit is still based on the correct
-         * parent.
-         *
-         * Do NOT create another commit.
-         *
-         * Retry updateRef with the SAME commit SHA.
-         * -----------------------------------------------
+         * Retry same commit.
          */
 
         console.warn(
@@ -752,10 +838,6 @@ export async function commitSolution(
           continue;
         }
 
-        /*
-         * We exhausted reference retries.
-         */
-
         throw new Error(
           `[GitHub] GitHub rejected the branch update after ${MAX_REF_UPDATE_ATTEMPTS} attempts, although branch "${settings.branch}" did not change. Last error: ${apiMessage}`,
         );
@@ -763,9 +845,9 @@ export async function commitSolution(
     }
 
     /*
-     * ------------------------------------------------
-     * 5.7 Rebuild only when the branch actually changed.
-     * ------------------------------------------------
+     * --------------------------------------------------
+     * 5.7 Rebuild only when branch changed.
+     * --------------------------------------------------
      */
 
     if (rebuildRequired) {
@@ -780,9 +862,6 @@ export async function commitSolution(
         );
       }
 
-      /*
-       * Small delay before rebuilding.
-       */
       await waitBeforeRetry(
         syncAttempt,
       );
@@ -791,12 +870,119 @@ export async function commitSolution(
     }
   }
 
-  /*
-   * This should never be reached.
-   */
   throw new Error(
     "[GitHub] Synchronization failed unexpectedly.",
   );
+}
+
+/**
+ * Initializes an empty GitHub repository.
+ *
+ * GitHub's Git Database API cannot create raw Git
+ * objects in an empty repository. The Contents API
+ * must first create a file and establish the initial
+ * repository history.
+ *
+ * This function is ONLY called after a 409 Conflict
+ * confirms that the repository has no Git history.
+ */
+async function initializeEmptyRepository(
+  github: Awaited<
+    ReturnType<typeof getGithubClient>
+  >,
+  owner: string,
+  repo: string,
+  branch: string,
+  file: SolutionPackage["files"][number],
+): Promise<void> {
+
+  try {
+
+    console.log(
+      "[GitHub] Initializing repository with:",
+      file.path,
+    );
+
+    const result =
+      await github.repos.createOrUpdateFileContents({
+        owner,
+
+        repo,
+
+        path:
+          file.path,
+
+        message:
+          "chore(codevault): initialize repository",
+
+        /*
+         * Browser-safe UTF-8 Base64 encoding.
+         *
+         * IMPORTANT:
+         *
+         * Do NOT use Buffer here because CodeVault
+         * runs inside a browser extension.
+         */
+        content:
+          encodeBase64Utf8(
+            file.content,
+          ),
+
+        branch,
+      });
+
+    console.log(
+      "[GitHub] Repository initialization commit:",
+      result.data.commit.sha,
+    );
+
+  } catch (error) {
+
+    const githubError =
+      error as GithubApiError;
+
+    const status =
+      githubError.status;
+
+    const message =
+      githubError.response?.data?.message ??
+      githubError.message ??
+      "Unknown GitHub error.";
+
+    if (status === 401) {
+      throw new Error(
+        "[GitHub] Authentication failed while initializing the repository. Please reconnect GitHub.",
+      );
+    }
+
+    if (status === 403) {
+      throw new Error(
+        `[GitHub] Permission denied while initializing "${owner}/${repo}". The GitHub token needs write access to repository contents.`,
+      );
+    }
+
+    if (status === 404) {
+      throw new Error(
+        `[GitHub] Repository "${owner}/${repo}" was not found while initializing the empty repository.`,
+      );
+    }
+
+    if (status === 409) {
+      throw new Error(
+        `[GitHub] Repository "${owner}/${repo}" is still unavailable for initialization. Please retry after GitHub finishes creating the repository.`,
+      );
+    }
+
+    if (status === 422) {
+      throw new Error(
+        `[GitHub] GitHub rejected repository initialization (422): ${message}`,
+      );
+    }
+
+    throw new Error(
+      `[GitHub] Failed to initialize empty repository "${owner}/${repo}". ${message}`,
+    );
+  }
 }
 
 /**
