@@ -1,11 +1,5 @@
 import { SOLUTION_MESSAGE } from "../src/features/platforms/leetcode/solution/solution-message";
 
-interface LeetCodeMetadata {
-  title: string;
-  titleSlug: string;
-  difficulty: string;
-}
-
 declare global {
   interface Window {
     __codevaultMainWorldInitialized?: boolean;
@@ -13,7 +7,6 @@ declare global {
 }
 
 export default defineUnlistedScript(() => {
-
   if (window.__codevaultMainWorldInitialized) {
     console.debug(
       "[CodeVault] Main world already initialized.",
@@ -25,19 +18,12 @@ export default defineUnlistedScript(() => {
   window.__codevaultMainWorldInitialized = true;
 
   console.log(
-    "🔥 CodeVault MAIN WORLD LOADED",
+    "[CodeVault] LeetCode main world initialized.",
   );
-
-  /*
-   * --------------------------------------------------
-   * Solution extraction
-   * --------------------------------------------------
-   */
 
   window.addEventListener(
     "message",
-    async (event) => {
-
+    async (event: MessageEvent) => {
       if (
         event.source !== window
       ) {
@@ -52,38 +38,13 @@ export default defineUnlistedScript(() => {
       }
 
       console.log(
-        "🔥 Solution request received",
+        "[CodeVault] Solution request received.",
       );
 
-      let model;
-
-      for (
-        let i = 0;
-        i < 30;
-        i++
-      ) {
-
-        model =
-          window.monaco
-            ?.editor
-            ?.getModels()
-          ?.[0];
-
-        if (model) {
-          break;
-        }
-
-        await new Promise(
-          (resolve) =>
-            setTimeout(
-              resolve,
-              1000,
-            ),
-        );
-      }
+      const model =
+        await waitForMonacoModel();
 
       if (!model) {
-
         console.warn(
           "[CodeVault] Monaco editor model not found.",
         );
@@ -95,15 +56,14 @@ export default defineUnlistedScript(() => {
         model.getValue();
 
       console.log(
-        "CodeVault: Solution received",
+        "[CodeVault] Solution received:",
         solution.length,
+        "characters.",
       );
 
       window.postMessage(
         {
-          type:
-            SOLUTION_MESSAGE,
-
+          type: SOLUTION_MESSAGE,
           solution,
         },
         "*",
@@ -111,140 +71,20 @@ export default defineUnlistedScript(() => {
     },
   );
 
-  /*
-   * --------------------------------------------------
-   * Metadata extraction
-   * --------------------------------------------------
-   */
-
-  window.addEventListener(
-    "message",
-    async (event) => {
-
-      if (
-        event.source !== window
-      ) {
-        return;
-      }
-
-      if (
-        event.data?.type !==
-        "CODEVAULT_REQUEST_METADATA"
-      ) {
-        return;
-      }
-
-      const requestId =
-        event.data.requestId;
-
-      const requestedSlug =
-        typeof event.data.slug === "string"
-          ? event.data.slug
-            .trim()
-            .toLowerCase()
-          : "";
-
-      console.log(
-        "[CodeVault] Metadata request received:",
-        requestedSlug,
-      );
-
-      if (!requestId || !requestedSlug) {
-
-        window.postMessage(
-          {
-            type:
-              "CODEVAULT_METADATA_RESPONSE",
-
-            requestId,
-
-            slug:
-              requestedSlug,
-
-            metadata:
-              null,
-
-            error:
-              "Invalid metadata request.",
-          },
-          "*",
-        );
-
-        return;
-      }
-
-      try {
-
-        const metadata =
-          await waitForMetadata(
-            requestedSlug,
-          );
-
-        console.log(
-          "[CodeVault] Metadata response:",
-          metadata,
-        );
-
-        window.postMessage(
-          {
-            type:
-              "CODEVAULT_METADATA_RESPONSE",
-
-            requestId,
-
-            slug:
-              requestedSlug,
-
-            metadata,
-          },
-          "*",
-        );
-
-      } catch (error) {
-
-        console.error(
-          "[CodeVault] Metadata extraction failed:",
-          error,
-        );
-
-        window.postMessage(
-          {
-            type:
-              "CODEVAULT_METADATA_RESPONSE",
-
-            requestId,
-
-            slug:
-              requestedSlug,
-
-            metadata:
-              null,
-
-            error:
-              error instanceof Error
-                ? error.message
-                : String(error),
-          },
-          "*",
-        );
-      }
-    },
-  );
-
-  /*
-   * --------------------------------------------------
-   * Wait for current LeetCode metadata
-   * --------------------------------------------------
-   */
-
-  async function waitForMetadata(
-    requestedSlug: string,
-  ): Promise<LeetCodeMetadata> {
-
+  async function waitForMonacoModel(): Promise<
+    ReturnType<
+      NonNullable<
+        NonNullable<
+          Window["monaco"]
+        >["editor"]
+      >["getModels"]
+    >[number] | undefined
+  > {
     const timeoutMs =
-      5_000;
+      30_000;
+
     const intervalMs =
-      200;
+      500;
 
     const startTime =
       Date.now();
@@ -253,134 +93,35 @@ export default defineUnlistedScript(() => {
       Date.now() - startTime <
       timeoutMs
     ) {
-
-      const metadata =
-        extractMetadataFromNextData();
+      const getModels =
+        window.monaco
+          ?.editor
+          ?.getModels;
 
       if (
-        metadata &&
-        metadata.titleSlug
-          .trim()
-          .toLowerCase() ===
-        requestedSlug
+        typeof getModels ===
+        "function"
       ) {
+        const models =
+          getModels();
 
-        return metadata;
+        if (
+          models.length > 0
+        ) {
+          return models[0];
+        }
       }
 
-      await new Promise(
-        (resolve) =>
+      await new Promise<void>(
+        (resolve) => {
           setTimeout(
             resolve,
             intervalMs,
-          ),
+          );
+        },
       );
     }
 
-    throw new Error(
-      `LeetCode metadata did not become available for "${requestedSlug}".`,
-    );
-  }
-
-  /*
-   * --------------------------------------------------
-   * Read metadata from __NEXT_DATA__
-   * --------------------------------------------------
-   */
-
-  function extractMetadataFromNextData():
-    LeetCodeMetadata | null {
-
-    const script =
-      document.getElementById(
-        "__NEXT_DATA__",
-      );
-
-    if (
-      !script?.textContent
-    ) {
-      return null;
-    }
-
-    try {
-
-      const nextData =
-        JSON.parse(
-          script.textContent,
-        );
-
-      const queries =
-        nextData
-          ?.props
-          ?.pageProps
-          ?.dehydratedState
-          ?.queries;
-
-      if (
-        !Array.isArray(
-          queries,
-        )
-      ) {
-        return null;
-      }
-
-      const questionQuery =
-        queries.find(
-          (query: any) =>
-            Array.isArray(
-              query?.queryKey,
-            ) &&
-            query.queryKey[0] ===
-            "questionDetail",
-        );
-
-      const question =
-        questionQuery
-          ?.state
-          ?.data
-          ?.question;
-
-      if (!question) {
-        return null;
-      }
-
-      const title =
-        typeof question.title ===
-          "string"
-          ? question.title.trim()
-          : "";
-
-      const titleSlug =
-        typeof question.titleSlug ===
-          "string"
-          ? question.titleSlug
-            .trim()
-            .toLowerCase()
-          : "";
-
-      const difficulty =
-        typeof question.difficulty ===
-          "string"
-          ? question.difficulty.trim()
-          : "";
-
-      if (
-        !title ||
-        !titleSlug ||
-        !difficulty
-      ) {
-        return null;
-      }
-
-      return {
-        title,
-        titleSlug,
-        difficulty,
-      };
-
-    } catch {
-
-      return null;
-    }
+    return undefined;
   }
 });

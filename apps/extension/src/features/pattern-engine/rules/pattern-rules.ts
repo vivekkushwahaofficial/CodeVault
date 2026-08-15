@@ -34,7 +34,19 @@ export const PATTERN_RULES: PatternRule[] = [
         /\b(two sum|frequency|frequencies|count occurrences|duplicate|lookup)\b/
           .test(normalizedProblemText)
       ) {
-        score += 25;
+        score += 35;
+      }
+
+      if (
+        /\b(target|complement)\b/.test(normalizedProblemText)
+      ) {
+        score += 20;
+      }
+
+      if (
+        /\b(seen|lookup|containskey|contains|has)\b/.test(normalizedSource)
+      ) {
+        score += 20;
       }
 
       if (
@@ -135,10 +147,15 @@ export const PATTERN_RULES: PatternRule[] = [
   {
     name: "Binary Search",
 
-    score: ({ normalizedProblemText, normalizedSource }) => {
+    score: ({
+      title,
+      normalizedProblemText,
+      normalizedSource,
+    }) => {
 
       let score = 0;
 
+      // Strong problem-level signal.
       if (
         /\b(binary search|sorted array|sorted list|search efficiently)\b/
           .test(normalizedProblemText)
@@ -146,19 +163,48 @@ export const PATTERN_RULES: PatternRule[] = [
         score += 45;
       }
 
+      // Strong title-level signal for problems that
+      // are commonly solved using binary search.
       if (
-        /\b(mid|middle)\b/.test(
+        /\bmedian of two sorted arrays\b/
+          .test(title.toLowerCase())
+      ) {
+        score += 35;
+      }
+
+      // Common binary-search variable names:
+      // mid, mid1, mid2, middle.
+      if (
+        /\b(mid\d*|middle)\b/.test(
           normalizedSource,
         )
       ) {
         score += 20;
       }
 
+      // Common low/high binary-search boundaries.
       if (
-        /left\s*\+\s*\(?right\s*-\s*left\)?\s*\/|lo\s*\+\s*\(?hi\s*-\s*lo\)?\s*\//
+        /\b(low|high|lo|hi)\b/.test(
+          normalizedSource,
+        )
+      ) {
+        score += 15;
+      }
+
+      // Common midpoint calculation.
+      if (
+        /(?:low|lo)\s*\+\s*\(?\s*(?:high|hi)\s*-\s*(?:low|lo)\s*\)?\s*\/\s*2/
           .test(normalizedSource)
       ) {
         score += 25;
+      }
+
+      // Binary-search partition logic.
+      if (
+        /\b(partition|leftpart|rightpart|partitionx|partitiony)\b/
+          .test(normalizedSource)
+      ) {
+        score += 20;
       }
 
       return Math.min(score, 100);
