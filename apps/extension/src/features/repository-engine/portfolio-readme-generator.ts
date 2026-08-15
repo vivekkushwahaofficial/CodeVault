@@ -80,7 +80,9 @@ export function generatePortfolioReadme(
   return [
     "# ⚡ Coding Solutions Portfolio",
     "",
-    "> Automatically organized and updated by **CodeVault**.",
+    "> Automatically organized, analyzed, and updated by **CodeVault**.",
+    "",
+    "[![CodeVault](https://img.shields.io/badge/Powered%20by-CodeVault-6e40c9)](https://github.com/vivekkushwa﻿haofficial/CodeVault)",
     "",
     "---",
     "",
@@ -93,18 +95,36 @@ export function generatePortfolioReadme(
     `| 🟠 Medium | ${medium} |`,
     `| 🔴 Hard | ${hard} |`,
     "",
-    "## 🧩 Patterns",
+    "## 📈 Progress",
     "",
-    generateCountTable(
-      patterns,
-      "Pattern",
+    generateProgressBar(
+      "Easy",
+      easy,
+      total,
+    ),
+    generateProgressBar(
+      "Medium",
+      medium,
+      total,
+    ),
+    generateProgressBar(
+      "Hard",
+      hard,
+      total,
     ),
     "",
-    "## 📚 Topics",
+    "## 🧩 Pattern & Topic Index",
     "",
-    generateCountTable(
+    generateIndexTable(
+      patterns,
+      "Pattern",
+      "patterns",
+    ),
+    "",
+    generateIndexTable(
       topics,
       "Topic",
+      "topics",
     ),
     "",
     "## 💻 Languages",
@@ -159,12 +179,7 @@ function countByDifficulty(
 }
 
 /**
- * Counts one value per solution.
- *
- * Example:
- *
- * Java → 2
- * Python → 1
+ * Counts one category value per solution.
  */
 function countBy(
   solutions: RepositorySolution[],
@@ -197,16 +212,8 @@ function countBy(
 }
 
 /**
- * Counts values where each solution
- * can belong to multiple categories.
- *
- * Example:
- *
- * Two Sum
- *   → Hash Map
- *
- * Valid Parentheses
- *   → Stack
+ * Counts categories where a solution can
+ * belong to multiple values.
  */
 function countByMany(
   solutions: RepositorySolution[],
@@ -244,8 +251,87 @@ function countByMany(
 }
 
 /**
- * Generates a Markdown table
- * from category counts.
+ * Generates a progress bar.
+ */
+function generateProgressBar(
+  label: string,
+  value: number,
+  total: number,
+): string {
+
+  const percentage =
+    total === 0
+      ? 0
+      : Math.round(
+        (value / total) * 100,
+      );
+
+  const filled =
+    Math.round(
+      (percentage / 100) * 20,
+    );
+
+  const bar =
+    "█".repeat(filled) +
+    "░".repeat(
+      20 - filled,
+    );
+
+  return (
+    `**${label}** ${bar} ` +
+    `${value}/${total} ` +
+    `(${percentage}%)`
+  );
+}
+
+/**
+ * Generates a category table with links
+ * to the generated category documents.
+ */
+function generateIndexTable(
+  counts: Map<string, number>,
+  label: string,
+  directory: string,
+): string {
+
+  const entries =
+    [...counts.entries()]
+      .sort(
+        (a, b) =>
+          b[1] - a[1] ||
+          a[0].localeCompare(
+            b[0],
+          ),
+      );
+
+  if (
+    entries.length === 0
+  ) {
+    return `_No ${label.toLowerCase()} data yet._`;
+  }
+
+  return [
+    `| ${label} | Problems |`,
+    "| --- | ---: |",
+    ...entries.map(
+      ([name, count]) => {
+
+        const fileName =
+          encodeURIComponent(
+            `${name}.md`,
+          );
+
+        return (
+          `| [${name}](${directory}/${fileName}) | ` +
+          `${count} |`
+        );
+      },
+    ),
+  ].join("\n");
+}
+
+/**
+ * Generates a normal count table.
  */
 function generateCountTable(
   counts: Map<string, number>,
@@ -335,7 +421,7 @@ function getSolvedTime(
 }
 
 /**
- * Capitalizes difficulty for display.
+ * Capitalizes display text.
  */
 function capitalize(
   value: string,

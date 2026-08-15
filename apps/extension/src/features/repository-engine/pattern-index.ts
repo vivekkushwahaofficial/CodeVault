@@ -48,7 +48,7 @@ export function generatePatternIndex(
       );
 
     lines.push(
-      `- [${metadata.title}](${readmePath}) — ${metadata.platform} · ${metadata.language} · ${metadata.difficulty}`,
+      `- [${metadata.title}](../${readmePath}) — ${metadata.platform} · ${metadata.language} · ${metadata.difficulty}`,
     );
   }
 
