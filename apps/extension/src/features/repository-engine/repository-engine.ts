@@ -13,6 +13,10 @@ import {
   generateTopicIndex,
 } from "./topic-index";
 
+import {
+  generatePortfolioReadme,
+} from "./portfolio-readme-generator";
+
 import type {
   RepositoryIndex,
   RepositorySolution,
@@ -91,6 +95,14 @@ export class RepositoryEngine {
       ...this.generatePatternFiles(),
 
       ...this.generateTopicFiles(),
+
+      {
+        path: "README.md",
+        content:
+          generatePortfolioReadme(
+            this.index,
+          ),
+      },
     ];
 
     return {
