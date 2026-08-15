@@ -10,7 +10,7 @@ export default defineConfig({
 
     short_name: "CodeVault",
 
-    version: "1.3.1",
+    version: "1.3.2",
 
     description:
       "Automatically extract and sync coding solutions to GitHub.",

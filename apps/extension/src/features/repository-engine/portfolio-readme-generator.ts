@@ -19,6 +19,12 @@ export function generatePortfolioReadme(
   const total =
     solutions.length;
 
+  const basic =
+    countByDifficulty(
+      solutions,
+      "basic",
+    );
+
   const easy =
     countByDifficulty(
       solutions,
@@ -82,7 +88,7 @@ export function generatePortfolioReadme(
     "",
     "> Automatically organized, analyzed, and updated by **CodeVault**.",
     "",
-    "[![CodeVault](https://img.shields.io/badge/Powered%20by-CodeVault-6e40c9)](https://github.com/vivekkushwa﻿haofficial/CodeVault)",
+    "[![CodeVault](https://img.shields.io/badge/Powered%20by-CodeVault-6e40c9)](https://github.com/vivekkushwahaofficial/CodeVault)",
     "",
     "---",
     "",
@@ -91,12 +97,18 @@ export function generatePortfolioReadme(
     "| Metric | Count |",
     "| --- | ---: |",
     `| 🏆 Total Solved | ${total} |`,
+    `| 🔵 Basic | ${basic} |`,
     `| 🟢 Easy | ${easy} |`,
     `| 🟠 Medium | ${medium} |`,
     `| 🔴 Hard | ${hard} |`,
     "",
     "## 📈 Progress",
     "",
+    generateProgressBar(
+      "Basic",
+      basic,
+      total,
+    ),
     generateProgressBar(
       "Easy",
       easy,
