@@ -378,8 +378,8 @@ function generateRecentSolutions(
   }
 
   return [
-    "| Problem | Difficulty | Language |",
-    "| --- | --- | --- |",
+    "| Problem | Difficulty | Language | Platform |",
+    "| --- | --- | --- | --- |",
     ...solutions.map(
       (solution) => {
 
@@ -395,7 +395,8 @@ function generateRecentSolutions(
         return (
           `| [${metadata.title}](${readmePath}) | ` +
           `${capitalize(metadata.difficulty)} | ` +
-          `${metadata.language} |`
+          `${metadata.language} | ` +
+          `${metadata.platform} |`
         );
       },
     ),
