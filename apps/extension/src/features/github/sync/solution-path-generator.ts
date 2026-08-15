@@ -6,6 +6,43 @@ export interface SolutionMetadata {
   difficulty: string;
   title: string;
   language: string;
+
+  /**
+   * Problem topics.
+   *
+   * Example:
+   * ["Array", "HashMap"]
+   */
+  topics?: string[];
+
+  /**
+   * Problem-solving patterns.
+   *
+   * Example:
+   * ["HashMap"]
+   */
+  patterns?: string[];
+
+  /**
+   * Platform or problem-specific tags.
+   */
+  tags?: string[];
+
+  /**
+   * Time complexity.
+   *
+   * Example:
+   * O(n)
+   */
+  timeComplexity?: string;
+
+  /**
+   * Space complexity.
+   *
+   * Example:
+   * O(n)
+   */
+  spaceComplexity?: string;
 }
 
 /**

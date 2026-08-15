@@ -182,7 +182,7 @@ export class ContentOrchestrator {
        *         Solution.ext
        */
       const solutionPackage =
-        buildSolutionPackage(
+        await buildSolutionPackage(
           metadata,
           solution,
           problemStatement,
@@ -207,9 +207,17 @@ export class ContentOrchestrator {
       );
 
       /*
-       * Save the fingerprint ONLY after successful
-       * GitHub synchronization.
+       * Save the fingerprint ONLY when GitHub
+       * synchronization actually succeeded.
        */
+      if (!result.success) {
+        console.error(
+          "[CodeVault] GitHub synchronization failed. Fingerprint will NOT be saved.",
+        );
+
+        return;
+      }
+
       await saveFingerprint(
         fingerprint,
       );

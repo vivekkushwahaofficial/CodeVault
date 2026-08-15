@@ -7,51 +7,121 @@ declare global {
 }
 
 export default defineUnlistedScript(() => {
-
   if (window.__codevaultMainWorldInitialized) {
-    console.debug("[CodeVault] Main world already initialized.");
+    console.debug(
+      "[CodeVault] Main world already initialized.",
+    );
+
     return;
   }
 
   window.__codevaultMainWorldInitialized = true;
 
-  console.log("🔥 CodeVault MAIN WORLD LOADED");
+  console.log(
+    "[CodeVault] LeetCode main world initialized.",
+  );
 
-  window.addEventListener("message", async (event) => {
-
-    if (event.data?.type !== "CODEVAULT_REQUEST_SOLUTION") {
-      return;
-    }
-
-    console.log("🔥 Solution request received");
-
-    let model;
-
-    for (let i = 0; i < 30; i++) {
-
-      model = window.monaco?.editor?.getModels()?.[0];
-
-      if (model) {
-        break;
+  window.addEventListener(
+    "message",
+    async (event: MessageEvent) => {
+      if (
+        event.source !== window
+      ) {
+        return;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (
+        event.data?.type !==
+        "CODEVAULT_REQUEST_SOLUTION"
+      ) {
+        return;
+      }
+
+      console.log(
+        "[CodeVault] Solution request received.",
+      );
+
+      const model =
+        await waitForMonacoModel();
+
+      if (!model) {
+        console.warn(
+          "[CodeVault] Monaco editor model not found.",
+        );
+
+        return;
+      }
+
+      const solution =
+        model.getValue();
+
+      console.log(
+        "[CodeVault] Solution received:",
+        solution.length,
+        "characters.",
+      );
+
+      window.postMessage(
+        {
+          type: SOLUTION_MESSAGE,
+          solution,
+        },
+        "*",
+      );
+    },
+  );
+
+  async function waitForMonacoModel(): Promise<
+    ReturnType<
+      NonNullable<
+        NonNullable<
+          Window["monaco"]
+        >["editor"]
+      >["getModels"]
+    >[number] | undefined
+  > {
+    const timeoutMs =
+      30_000;
+
+    const intervalMs =
+      500;
+
+    const startTime =
+      Date.now();
+
+    while (
+      Date.now() - startTime <
+      timeoutMs
+    ) {
+      const getModels =
+        window.monaco
+          ?.editor
+          ?.getModels;
+
+      if (
+        typeof getModels ===
+        "function"
+      ) {
+        const models =
+          getModels();
+
+        if (
+          models.length > 0
+        ) {
+          return models[0];
+        }
+      }
+
+      await new Promise<void>(
+        (resolve) => {
+          setTimeout(
+            resolve,
+            intervalMs,
+          );
+        },
+      );
     }
 
-    if (!model) {
-      console.warn("[CodeVault] Monaco editor model not found.");
-      return;
-    }
-
-    const solution = model.getValue();
-
-    window.postMessage(
-      {
-        type: SOLUTION_MESSAGE,
-        solution,
-      },
-      "*",
-    );
-  });
-
+    return undefined;
+  }
 });

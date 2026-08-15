@@ -130,7 +130,7 @@ Changes that affect installation, configuration, functionality, APIs, architectu
 
 ## 10. Licensing
 
-CodeVault is currently distributed under the MIT License.
+CodeVault is currently distributed under the Apache License 2.0.
 
 By submitting a contribution, you represent that:
 

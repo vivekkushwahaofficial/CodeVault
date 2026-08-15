@@ -1,18 +1,117 @@
 import { generateReadme } from "../readme/readme-generator";
+import { readRepositoryFile } from "../services/github-repository-reader";
+
+import { RepositoryEngine } from "../../repository-engine/repository-engine";
+import { PatternEngine } from "../../pattern-engine/pattern-engine";
+
 import { generateSolutionPath } from "./solution-path-generator";
 
 import type { SolutionMetadata } from "./solution-path-generator";
 import type { ProblemStatement } from "../../platforms/shared/problem-statement";
 import type { SolutionPackage } from "./types/solution-package";
 
-export function buildSolutionPackage(
+export async function buildSolutionPackage(
   metadata: SolutionMetadata,
   sourceCode: string,
   problemStatement: ProblemStatement,
-): SolutionPackage {
+): Promise<SolutionPackage> {
+
+  /*
+   * --------------------------------------------------
+   * Pattern Engine
+   * --------------------------------------------------
+   *
+   * Classification happens before the repository
+   * path and repository indexes are generated.
+   *
+   * The existing metadata object is not mutated.
+   */
+
+  let classifiedMetadata =
+    metadata;
+
+  try {
+
+    const classification =
+      PatternEngine.analyze({
+        metadata,
+        sourceCode,
+        problemStatement,
+      });
+
+    classifiedMetadata = {
+      ...metadata,
+
+      patterns:
+        classification.patterns,
+
+      topics:
+        classification.topics,
+
+      tags:
+        classification.tags,
+
+      ...(classification.timeComplexity
+        ? {
+          timeComplexity:
+            classification.timeComplexity,
+        }
+        : {}),
+
+      ...(classification.spaceComplexity
+        ? {
+          spaceComplexity:
+            classification.spaceComplexity,
+        }
+        : {}),
+    };
+
+    console.log(
+      "[CodeVault] Pattern Engine completed:",
+      {
+        patterns:
+          classification.patterns,
+
+        topics:
+          classification.topics,
+
+        tags:
+          classification.tags,
+
+        timeComplexity:
+          classification.timeComplexity,
+
+        spaceComplexity:
+          classification.spaceComplexity,
+      },
+    );
+
+  } catch (error) {
+
+    /*
+     * Pattern classification must not break
+     * the existing solution synchronization pipeline.
+     *
+     * If classification fails, the solution is still
+     * synchronized using the original metadata.
+     */
+
+    console.warn(
+      "[CodeVault] Pattern Engine failed. Continuing without classification.",
+      error,
+    );
+  }
+
+  /*
+   * --------------------------------------------------
+   * Existing Solution Path Generation
+   * --------------------------------------------------
+   */
 
   const solutionPath =
-    generateSolutionPath(metadata);
+    generateSolutionPath(
+      classifiedMetadata,
+    );
 
   const readmePath =
     solutionPath.replace(
@@ -21,46 +120,149 @@ export function buildSolutionPackage(
     );
 
   const commitMessage =
-    `feat(${metadata.platform.toLowerCase()}): Add ${metadata.title}`;
+    `feat(${classifiedMetadata.platform.toLowerCase()}): Add ${classifiedMetadata.title}`;
 
-  console.log("================================");
-  console.log("📦 Building Solution Package");
-  console.log("Platform:", metadata.platform);
-  console.log("Difficulty:", metadata.difficulty);
-  console.log("Title:", metadata.title);
-  console.log("Language:", metadata.language);
-  console.log("Solution Path:", solutionPath);
-  console.log("README Path:", readmePath);
-  console.log("================================");
+  console.log(
+    "================================",
+  );
+
+  console.log(
+    "📦 Building Solution Package",
+  );
+
+  console.log(
+    "Platform:",
+    classifiedMetadata.platform,
+  );
+
+  console.log(
+    "Difficulty:",
+    classifiedMetadata.difficulty,
+  );
+
+  console.log(
+    "Title:",
+    classifiedMetadata.title,
+  );
+
+  console.log(
+    "Language:",
+    classifiedMetadata.language,
+  );
+
+  console.log(
+    "Patterns:",
+    classifiedMetadata.patterns ?? [],
+  );
+
+  console.log(
+    "Topics:",
+    classifiedMetadata.topics ?? [],
+  );
+
+  console.log(
+    "Tags:",
+    classifiedMetadata.tags ?? [],
+  );
+
+  console.log(
+    "Time Complexity:",
+    classifiedMetadata.timeComplexity ?? "Not inferred",
+  );
+
+  console.log(
+    "Space Complexity:",
+    classifiedMetadata.spaceComplexity ?? "Not inferred",
+  );
+
+  console.log(
+    "Solution Path:",
+    solutionPath,
+  );
+
+  console.log(
+    "README Path:",
+    readmePath,
+  );
+
+  console.log(
+    "================================",
+  );
+
+  /*
+   * --------------------------------------------------
+   * Existing Repository Engine
+   * --------------------------------------------------
+   *
+   * IMPORTANT:
+   * Repository Engine remains unchanged.
+   *
+   * It now receives the classified metadata,
+   * so it can generate:
+   *
+   * .codevault/index.json
+   * patterns/*.md
+   * topics/*.md
+   */
+
+  const existingIndex =
+    await readRepositoryFile(
+      ".codevault/index.json",
+    );
+
+  const repositoryEngine =
+    RepositoryEngine.fromIndex(
+      existingIndex,
+    );
+
+  const repositoryResult =
+    repositoryEngine.process({
+      path:
+        solutionPath,
+
+      metadata:
+        classifiedMetadata,
+    });
+
+  console.log(
+    "[CodeVault] Repository Engine result:",
+    repositoryResult,
+  );
+
+  /*
+   * --------------------------------------------------
+   * Existing Solution Package
+   * --------------------------------------------------
+   */
 
   return {
 
-    metadata,
+    metadata:
+      classifiedMetadata,
 
     commitMessage,
 
     files: [
 
       {
+        path:
+          readmePath,
 
-        path: readmePath,
-
-        content: generateReadme(
-          problemStatement,
-        ),
-
+        content:
+          generateReadme(
+            problemStatement,
+          ),
       },
 
       {
+        path:
+          solutionPath,
 
-        path: solutionPath,
-
-        content: sourceCode,
-
+        content:
+          sourceCode,
       },
 
+      ...repositoryResult.files,
     ],
-
   };
-
 }
