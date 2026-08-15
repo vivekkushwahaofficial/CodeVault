@@ -104,23 +104,10 @@ export function generatePortfolioReadme(
     "",
     "## 📈 Progress",
     "",
-    generateProgressBar(
-      "Basic",
+    generateDifficultyProgressTable(
       basic,
-      total,
-    ),
-    generateProgressBar(
-      "Easy",
       easy,
-      total,
-    ),
-    generateProgressBar(
-      "Medium",
       medium,
-      total,
-    ),
-    generateProgressBar(
-      "Hard",
       hard,
       total,
     ),
@@ -263,10 +250,41 @@ function countByMany(
 }
 
 /**
+ * Generates a structured difficulty progress table.
+ *
+ * Using a Markdown table keeps each difficulty
+ * on its own row and prevents GitHub from
+ * visually wrapping multiple progress bars together.
+ */
+function generateDifficultyProgressTable(
+  basic: number,
+  easy: number,
+  medium: number,
+  hard: number,
+  total: number,
+): string {
+
+  const rows = [
+    ["🔵 Basic", basic],
+    ["🟢 Easy", easy],
+    ["🟠 Medium", medium],
+    ["🔴 Hard", hard],
+  ] as const;
+
+  return [
+    "| Difficulty | Progress | Solved |",
+    "| --- | --- | ---: |",
+    ...rows.map(
+      ([label, value]) =>
+        `| ${label} | ${generateProgressBar(value, total)} | ${value}/${total} |`,
+    ),
+  ].join("\n");
+}
+
+/**
  * Generates a progress bar.
  */
 function generateProgressBar(
-  label: string,
   value: number,
   total: number,
 ): string {
@@ -290,9 +308,7 @@ function generateProgressBar(
     );
 
   return (
-    `**${label}** ${bar} ` +
-    `${value}/${total} ` +
-    `(${percentage}%)`
+    `${bar} ${percentage}%`
   );
 }
 
