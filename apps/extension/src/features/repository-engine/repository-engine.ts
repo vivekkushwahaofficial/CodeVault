@@ -17,6 +17,10 @@ import {
   generatePortfolioReadme,
 } from "./portfolio-readme-generator";
 
+import {
+  generateActivityHeatmap,
+} from "./activity-heatmap-generator";
+
 import type {
   RepositoryIndex,
   RepositorySolution,
@@ -83,27 +87,35 @@ export class RepositoryEngine {
         solution,
       );
 
-    const files = [
-      {
-        path: ".codevault/index.json",
-        content:
-          serializeRepositoryIndex(
-            this.index,
-          ),
-      },
+const files = [
+  {
+    path: ".codevault/index.json",
+    content:
+      serializeRepositoryIndex(
+        this.index,
+      ),
+  },
 
-      ...this.generatePatternFiles(),
+  {
+    path: ".codevault/activity.svg",
+    content:
+      generateActivityHeatmap(
+        this.index,
+      ),
+  },
 
-      ...this.generateTopicFiles(),
+  ...this.generatePatternFiles(),
 
-      {
-        path: "README.md",
-        content:
-          generatePortfolioReadme(
-            this.index,
-          ),
-      },
-    ];
+  ...this.generateTopicFiles(),
+
+  {
+    path: "README.md",
+    content:
+      generatePortfolioReadme(
+        this.index,
+      ),
+  },
+];
 
     return {
       index: this.index,
