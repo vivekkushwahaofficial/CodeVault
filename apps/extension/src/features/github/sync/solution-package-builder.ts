@@ -214,14 +214,19 @@ export async function buildSolutionPackage(
     RepositoryEngine.fromIndex(
       existingIndex,
     );
+  console.log(
+    "[CodeVault] solvedAt before repository engine:",
+    classifiedMetadata.solvedAt,
+  );
 
   const repositoryResult =
     repositoryEngine.process({
-      path:
-        solutionPath,
-
+      path: solutionPath,
       metadata:
         classifiedMetadata,
+
+      solvedAt:
+        classifiedMetadata.solvedAt,
     });
 
   console.log(

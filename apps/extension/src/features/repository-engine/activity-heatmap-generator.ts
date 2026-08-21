@@ -128,7 +128,7 @@ export function generateActivityHeatmap(
       height,
     ),
     `</svg>`,
-  ].join("");
+  ].join(" ");
 }
 
 /**
@@ -448,7 +448,7 @@ function generateWeekdayLabels(
     `<text x="8" y="${gridY + cellStep * 1}" fill="#8b949e" font-family="Arial, sans-serif" font-size="8">Mon</text>`,
     `<text x="8" y="${gridY + cellStep * 3}" fill="#8b949e" font-family="Arial, sans-serif" font-size="8">Wed</text>`,
     `<text x="8" y="${gridY + cellStep * 5}" fill="#8b949e" font-family="Arial, sans-serif" font-size="8">Fri</text>`,
-  ].join("");
+  ].join(" ");
 }
 
 /**
@@ -479,7 +479,7 @@ function generateLegend(
     `<text x="${startX}" y="${y}" fill="#8b949e" font-family="Arial, sans-serif" font-size="8">Less</text>`,
     cells.join(""),
     `<text x="${startX + 95}" y="${y}" fill="#8b949e" font-family="Arial, sans-serif" font-size="8">More</text>`,
-  ].join("");
+  ].join(" ");
 }
 
 /**
@@ -528,7 +528,7 @@ function generateEmptyHeatmap(): string {
     `<rect width="100%" height="100%" fill="#0d1117" rx="8"/>`,
     `<text x="360" y="44" text-anchor="middle" fill="#8b949e" font-family="Arial, sans-serif" font-size="12">No coding activity yet</text>`,
     `</svg>`,
-  ].join("");
+  ].join(" ");
 }
 
 /**
