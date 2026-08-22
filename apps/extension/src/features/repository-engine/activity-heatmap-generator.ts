@@ -6,6 +6,14 @@ import type { RepositoryIndex } from "./types";
  * The heatmap represents the 365-day period ending on the
  * latest valid solved date in the repository index.
  *
+ * Activity intensity is deterministic:
+ *
+ * 0      -> level 0
+ * 1      -> level 1
+ * 2      -> level 2
+ * 3-4    -> level 3
+ * 5+     -> level 4
+ *
  * No external services are required.
  */
 export function generateActivityHeatmap(
@@ -18,80 +26,79 @@ export function generateActivityHeatmap(
   }
 
   const latestDate = getLatestDate(dailyCounts);
-  const endDate = endOfWeek(latestDate);
-  const startDate = startOfWeek(
-    addDays(endDate, -364),
-  );
 
-  const weeks = generateWeeks(
-    startDate,
-    endDate,
-  );
+  const endDate =
+    endOfWeek(latestDate);
 
-  const maximumCount = Math.max(
-    ...dailyCounts.values(),
-    0,
-  );
+  const startDate =
+    startOfWeek(
+      addDays(endDate, -364),
+    );
+
+  const weeks =
+    generateWeeks(
+      startDate,
+      endDate,
+    );
 
   const cellSize = 10;
   const cellGap = 3;
-  const cellStep = cellSize + cellGap;
+  const cellStep =
+    cellSize + cellGap;
 
   const gridX = 45;
   const gridY = 25;
 
-  const width = Math.max(
-    720,
-    gridX + weeks.length * cellStep + 5,
-  );
+  const width =
+    Math.max(
+      720,
+      gridX +
+      weeks.length *
+      cellStep +
+      5,
+    );
 
   const height = 150;
 
   const cells: string[] = [];
 
   for (
-    const [weekIndex, week] of weeks.entries()
+    const [weekIndex, week] of
+    weeks.entries()
   ) {
     for (
-      const [dayIndex, date] of week.entries()
+      const [dayIndex, date] of
+      week.entries()
     ) {
-      const key = toDateKey(date);
+      const key =
+        toDateKey(date);
 
       const count =
-        dailyCounts.get(key) ?? 0;
+        dailyCounts.get(key) ??
+        0;
 
       const x =
         gridX +
-        weekIndex * cellStep;
+        weekIndex *
+        cellStep;
 
       const y =
         gridY +
-        dayIndex * cellStep;
+        dayIndex *
+        cellStep;
 
       const level =
-        getActivityLevel(
-          count,
-          maximumCount,
-        );
+        getActivityLevel(count);
 
       cells.push(
-        [
-          `<rect`,
-          `x="${x}"`,
-          `y="${y}"`,
-          `width="${cellSize}"`,
-          `height="${cellSize}"`,
-          `rx="2"`,
-          `fill="${getLevelColor(level)}"`,
-          `>`,
-          `<title>${escapeXml(
-            `${key}: ${count} ${count === 1
-              ? "solution"
-              : "solutions"
-            }`,
-          )}</title>`,
-          `</rect>`,
-        ].join(" "),
+        createActivityCell({
+          x,
+          y,
+          size: cellSize,
+          level,
+          dateKey: key,
+          count,
+        }),
       );
     }
   }
@@ -116,7 +123,6 @@ export function generateActivityHeatmap(
     `<title id="title">CodeVault Coding Activity</title>`,
     `<desc id="description">Daily coding solution activity for the latest 365 days represented in the CodeVault repository.</desc>`,
     `<rect width="100%" height="100%" fill="#0d1117" rx="8"/>`,
-    `<text x="45" y="15" fill="#8b949e" font-family="Arial, sans-serif" font-size="10">Coding Activity</text>`,
     monthLabels,
     cells.join(""),
     generateWeekdayLabels(
@@ -132,22 +138,29 @@ export function generateActivityHeatmap(
 }
 
 /**
- * Collects solution counts by calendar date.
+ * Collects solution counts by UTC calendar date.
+ *
+ * Invalid or missing solvedAt values are ignored so one
+ * malformed record cannot break README generation.
  */
 function collectDailyCounts(
   index: RepositoryIndex,
 ): Map<string, number> {
-  const counts = new Map<string, number>();
+  const counts =
+    new Map<string, number>();
 
   for (
-    const solution of index.solutions
+    const solution of
+    index.solutions
   ) {
     if (!solution.solvedAt) {
       continue;
     }
 
     const date =
-      new Date(solution.solvedAt);
+      new Date(
+        solution.solvedAt,
+      );
 
     if (
       Number.isNaN(
@@ -196,7 +209,7 @@ function getLatestDate(
 }
 
 /**
- * Generates all weeks between two dates.
+ * Generates all calendar weeks between two dates.
  */
 function generateWeeks(
   startDate: Date,
@@ -236,7 +249,7 @@ function generateWeeks(
 }
 
 /**
- * Converts a date to YYYY-MM-DD.
+ * Converts a Date to YYYY-MM-DD using UTC.
  */
 function toDateKey(
   date: Date,
@@ -264,8 +277,7 @@ function fromDateKey(
 }
 
 /**
- * Adds days without mutating
- * the original date.
+ * Adds days without mutating the input Date.
  */
 function addDays(
   date: Date,
@@ -283,8 +295,7 @@ function addDays(
 }
 
 /**
- * Returns the Sunday at the beginning
- * of the week containing the date.
+ * Returns Sunday at the beginning of the week.
  */
 function startOfWeek(
   date: Date,
@@ -301,8 +312,7 @@ function startOfWeek(
 }
 
 /**
- * Returns the Saturday at the end
- * of the week containing the date.
+ * Returns Saturday at the end of the week.
  */
 function endOfWeek(
   date: Date,
@@ -314,31 +324,30 @@ function endOfWeek(
 }
 
 /**
- * Determines heatmap intensity.
+ * Determines the deterministic activity level.
+ *
+ * 0      -> empty
+ * 1      -> light
+ * 2      -> medium-light
+ * 3-4    -> medium
+ * 5+     -> strongest
  */
 function getActivityLevel(
   count: number,
-  maximumCount: number,
 ): number {
-  if (
-    count === 0 ||
-    maximumCount === 0
-  ) {
+  if (count <= 0) {
     return 0;
   }
 
-  const ratio =
-    count / maximumCount;
-
-  if (ratio <= 0.25) {
+  if (count === 1) {
     return 1;
   }
 
-  if (ratio <= 0.5) {
+  if (count === 2) {
     return 2;
   }
 
-  if (ratio <= 0.75) {
+  if (count <= 4) {
     return 3;
   }
 
@@ -346,13 +355,54 @@ function getActivityLevel(
 }
 
 /**
- * Returns the heatmap color
+ * Creates one activity cell.
+ */
+function createActivityCell(
+  options: {
+    x: number;
+    y: number;
+    size: number;
+    level: number;
+    dateKey: string;
+    count: number;
+  },
+): string {
+  const {
+    x,
+    y,
+    size,
+    level,
+    dateKey,
+    count,
+  } = options;
+
+  return [
+    `<rect`,
+    `x="${x}"`,
+    `y="${y}"`,
+    `width="${size}"`,
+    `height="${size}"`,
+    `rx="2"`,
+    `fill="${getLevelColor(level)}"`,
+    `>`,
+    `<title>${escapeXml(
+      `${dateKey}: ${count} ${count === 1
+        ? "solution"
+        : "solutions"
+      }`,
+    )}</title>`,
+    `</rect>`,
+  ].join(" ");
+}
+
+/**
+ * Returns the GitHub-style color
  * for an activity level.
  */
 function getLevelColor(
   level: number,
 ): string {
-  const colors = [
+  const colors: readonly string[] = [
     "#161b22",
     "#0e4429",
     "#006d32",
@@ -380,8 +430,7 @@ function generateMonthLabels(
   let current =
     new Date(startDate);
 
-  let previousMonth =
-    -1;
+  let previousMonth = -1;
 
   while (
     current.getTime() <=
@@ -428,10 +477,7 @@ function generateMonthLabels(
     }
 
     current =
-      addDays(
-        current,
-        1,
-      );
+      addDays(current, 1);
   }
 
   return labels.join("");
@@ -452,7 +498,7 @@ function generateWeekdayLabels(
 }
 
 /**
- * Generates the heatmap legend.
+ * Generates the activity legend.
  */
 function generateLegend(
   width: number,
@@ -510,8 +556,7 @@ function getMonthName(
 }
 
 /**
- * Generates an empty heatmap when
- * no valid solved dates exist.
+ * Generates the empty state.
  */
 function generateEmptyHeatmap(): string {
   return [
@@ -538,9 +583,24 @@ function escapeXml(
   value: string,
 ): string {
   return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&apos;");
+    .replaceAll(
+      "&",
+      "&amp;",
+    )
+    .replaceAll(
+      "<",
+      "&lt;",
+    )
+    .replaceAll(
+      ">",
+      "&gt;",
+    )
+    .replaceAll(
+      "\"",
+      "&quot;",
+    )
+    .replaceAll(
+      "'",
+      "&apos;",
+    );
 }
