@@ -6,42 +6,46 @@ All notable changes to CodeVault are documented in this file.
 
 ### Added
 
-- Added a GitHub-compatible coding activity heatmap.
-- Added automatic generation of `.codevault/activity.svg`.
-- Added 365-day coding activity tracking based on solved dates.
-- Added deterministic activity levels based on daily solution counts.
-- Added automatic solved-date tracking through the repository pipeline.
-- Added automatic activity heatmap regeneration during repository updates.
+* Added a GitHub-compatible coding activity heatmap.
+* Added automatic generation of `.codevault/activity.svg`.
+* Added 365-day coding activity tracking based on solved dates.
+* Added deterministic activity levels based on daily solution counts.
+* Added automatic solved-date tracking through the repository pipeline.
+* Added automatic activity heatmap regeneration during repository updates.
 
 ### Activity Levels
 
-- 0 solutions — No activity
-- 1 solution — Light activity
-- 2 solutions — Medium-light activity
-- 3–4 solutions — Medium activity
-- 5+ solutions — Highest activity
+* 0 solutions — No activity
+* 1 solution — Light activity
+* 2 solutions — Medium-light activity
+* 3–4 solutions — Medium activity
+* 5+ solutions — Highest activity
 
 ### Improved
 
-- Improved repository portfolio generation.
-- Improved coding activity statistics.
-- Improved solved-date processing.
-- Improved repository engine integration.
-- Continued automatic README generation.
-- Continued automatic platform, difficulty, language, pattern, and topic statistics.
-- Continued automatic GitHub synchronization.
+* Improved repository portfolio generation.
+* Improved coding activity statistics.
+* Improved solved-date processing.
+* Improved repository engine integration.
+* Continued automatic README generation.
+* Continued automatic platform, difficulty, language, pattern, and topic statistics.
+* Continued automatic GitHub synchronization.
 
 ### Repository Data
 
 CodeVault now maintains:
 
+```text
 .codevault/
 ├── index.json
 └── activity.svg
+```
 
 The activity heatmap is generated from the solution data stored in:
 
+```text
 .codevault/index.json
+```
 
 ### Production Validation
 
@@ -87,6 +91,105 @@ CodeVault now tracks:
 * Easy
 * Medium
 * Hard
+
+### Supported Platforms
+
+* LeetCode
+* GeeksforGeeks
+* HackerRank
+
+---
+
+## [1.3.1] — Improved Portfolio Documentation
+
+### Added
+
+* Added platform information to the Recently Solved section.
+* Added consistent platform metadata alongside problem, difficulty, and programming language.
+
+### Improved
+
+* Improved automatically generated portfolio README.
+* Improved solution metadata visibility.
+* Improved Recently Solved documentation.
+* Improved automatic README updates.
+* Improved platform-aware solution documentation.
+
+### Portfolio Information
+
+The generated README can now display:
+
+* Total problems solved
+* Difficulty statistics
+* Pattern statistics
+* Topic statistics
+* Programming-language statistics
+* Platform statistics
+* Recently solved problems
+* Solution index
+* Pattern documentation
+* Topic documentation
+
+### Supported Platforms
+
+* LeetCode
+* GeeksforGeeks
+* HackerRank
+
+---
+
+## [1.3.0] — Automatic Portfolio Documentation
+
+### Added
+
+* Added automatic repository-level portfolio README generation.
+* Added CodeVault Repository Engine.
+* Added repository solution index.
+* Added solution metadata registration.
+* Added pattern indexes.
+* Added topic indexes.
+* Added automatic portfolio statistics generation.
+* Added automatically generated pattern documentation.
+* Added automatically generated topic documentation.
+
+### Repository Data
+
+CodeVault introduced:
+
+```text
+.codevault/
+└── index.json
+```
+
+along with:
+
+```text
+README.md
+patterns/
+topics/
+```
+
+### Portfolio Statistics
+
+The generated README now includes:
+
+* Total problems solved
+* Easy / Medium / Hard statistics
+* Pattern statistics
+* Topic statistics
+* Programming-language statistics
+* Platform statistics
+* Recently solved problems
+* Repository index links
+* Pattern documentation links
+* Topic documentation links
+
+### Improved
+
+* Improved repository organization.
+* Improved documentation navigation.
+* Improved generated pattern and topic links.
+* Continued automatic GitHub synchronization.
 
 ### Supported Platforms
 
@@ -180,19 +283,8 @@ CodeVault now tracks:
 
 [1.4.0]: https://github.com/vivekkushwahaofficial/CodeVault/releases/tag/v1.4.0
 [1.3.2]: https://github.com/vivekkushwahaofficial/CodeVault/releases/tag/v1.3.2
+[1.3.1]: https://github.com/vivekkushwahaofficial/CodeVault/releases/tag/v1.3.1
+[1.3.0]: https://github.com/vivekkushwahaofficial/CodeVault/releases/tag/v1.3.0
 [1.2.0]: https://github.com/vivekkushwahaofficial/CodeVault/releases/tag/v1.2.0
 [1.1.0]: https://github.com/vivekkushwahaofficial/CodeVault/releases/tag/v1.1.0
 [1.0.0]: https://github.com/vivekkushwahaofficial/CodeVault/releases/tag/v1.0.0
-
-
-### One important point
-
-Your changelog is now correctly ordered:
-
-v1.4.0  ← latest
-v1.3.2
-v1.2.0
-v1.1.0
-v1.0.0
-````
-
