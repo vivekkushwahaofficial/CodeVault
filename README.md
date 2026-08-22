@@ -133,7 +133,7 @@ CodeVault v1.4.0 introduces an automatically generated GitHub-compatible coding 
 
 Generated at:
 
-```text
+```
 .codevault/activity.svg
 ```
 
@@ -151,7 +151,7 @@ Activity intensity is deterministic:
 
 The heatmap is generated from solved-date information stored in:
 
-```text
+```
 .codevault/index.json
 ```
 
@@ -209,7 +209,7 @@ Solutions are automatically organized by platform, language, difficulty, and pro
 
 Example:
 
-```text
+```
 Repository
 │
 ├── LeetCode
@@ -428,7 +428,7 @@ pnpm build
 
 The production extension will be generated under:
 
-```text
+```
 apps/extension/.output/chrome-mv3/
 ```
 
@@ -438,7 +438,7 @@ apps/extension/.output/chrome-mv3/
 
 1. Open:
 
-```text
+```
 chrome://extensions
 ```
 
@@ -663,14 +663,3 @@ The goal is simple:
 
 Built with ❤️ for developers who love solving problems, not managing repositories.
 
-### Important corrections from your old README
-
-The biggest outdated claims were:
-
-v0.1.0 → v1.4.0
-MVP → Active
-LeetCode only → LeetCode + GFG + HackerRank
-No heatmap → 365-day activity heatmap
-Old v0.2–v1.0 roadmap → current future roadmap
-MIT License → Apache 2.0
-```
