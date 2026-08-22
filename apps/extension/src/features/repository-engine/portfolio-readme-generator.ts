@@ -112,6 +112,10 @@ export function generatePortfolioReadme(
       total,
     ),
     "",
+    "## 🔥 Coding Activity",
+    "",
+    "![CodeVault Coding Activity](.codevault/activity.svg)",
+    "",
     "## 🧩 Pattern & Topic Index",
     "",
     generateIndexTable(
