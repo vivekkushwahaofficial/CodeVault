@@ -214,14 +214,14 @@ export async function buildSolutionPackage(
     RepositoryEngine.fromIndex(
       existingIndex,
     );
-
   const repositoryResult =
     repositoryEngine.process({
-      path:
-        solutionPath,
-
+      path: solutionPath,
       metadata:
         classifiedMetadata,
+
+      solvedAt:
+        classifiedMetadata.solvedAt,
     });
 
   console.log(

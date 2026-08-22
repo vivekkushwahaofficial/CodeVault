@@ -19,6 +19,12 @@ export function generatePortfolioReadme(
   const total =
     solutions.length;
 
+  const basic =
+    countByDifficulty(
+      solutions,
+      "basic",
+    );
+
   const easy =
     countByDifficulty(
       solutions,
@@ -82,7 +88,7 @@ export function generatePortfolioReadme(
     "",
     "> Automatically organized, analyzed, and updated by **CodeVault**.",
     "",
-    "[![CodeVault](https://img.shields.io/badge/Powered%20by-CodeVault-6e40c9)](https://github.com/vivekkushwa﻿haofficial/CodeVault)",
+    "[![CodeVault](https://img.shields.io/badge/Powered%20by-CodeVault-6e40c9)](https://github.com/vivekkushwahaofficial/CodeVault)",
     "",
     "---",
     "",
@@ -91,27 +97,24 @@ export function generatePortfolioReadme(
     "| Metric | Count |",
     "| --- | ---: |",
     `| 🏆 Total Solved | ${total} |`,
+    `| 🔵 Basic | ${basic} |`,
     `| 🟢 Easy | ${easy} |`,
     `| 🟠 Medium | ${medium} |`,
     `| 🔴 Hard | ${hard} |`,
     "",
     "## 📈 Progress",
     "",
-    generateProgressBar(
-      "Easy",
+    generateDifficultyProgressTable(
+      basic,
       easy,
-      total,
-    ),
-    generateProgressBar(
-      "Medium",
       medium,
-      total,
-    ),
-    generateProgressBar(
-      "Hard",
       hard,
       total,
     ),
+    "",
+    "## 🔥 Coding Activity",
+    "",
+    "![CodeVault Coding Activity](.codevault/activity.svg)",
     "",
     "## 🧩 Pattern & Topic Index",
     "",
@@ -251,10 +254,41 @@ function countByMany(
 }
 
 /**
+ * Generates a structured difficulty progress table.
+ *
+ * Using a Markdown table keeps each difficulty
+ * on its own row and prevents GitHub from
+ * visually wrapping multiple progress bars together.
+ */
+function generateDifficultyProgressTable(
+  basic: number,
+  easy: number,
+  medium: number,
+  hard: number,
+  total: number,
+): string {
+
+  const rows = [
+    ["🔵 Basic", basic],
+    ["🟢 Easy", easy],
+    ["🟠 Medium", medium],
+    ["🔴 Hard", hard],
+  ] as const;
+
+  return [
+    "| Difficulty | Progress | Solved |",
+    "| --- | --- | ---: |",
+    ...rows.map(
+      ([label, value]) =>
+        `| ${label} | ${generateProgressBar(value, total)} | ${value}/${total} |`,
+    ),
+  ].join("\n");
+}
+
+/**
  * Generates a progress bar.
  */
 function generateProgressBar(
-  label: string,
   value: number,
   total: number,
 ): string {
@@ -278,9 +312,7 @@ function generateProgressBar(
     );
 
   return (
-    `**${label}** ${bar} ` +
-    `${value}/${total} ` +
-    `(${percentage}%)`
+    `${bar} ${percentage}%`
   );
 }
 

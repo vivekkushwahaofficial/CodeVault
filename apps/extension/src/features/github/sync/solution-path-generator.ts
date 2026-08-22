@@ -8,6 +8,11 @@ export interface SolutionMetadata {
   language: string;
 
   /**
+   * Date when the solution was solved.
+   */
+  solvedAt?: string;
+
+  /**
    * Problem topics.
    *
    * Example:
