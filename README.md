@@ -129,7 +129,7 @@ No manual README editing is required.
 
 ## 🔥 Coding Activity Heatmap
 
-CodeVault v1.4.0 introduces an automatically generated GitHub-compatible coding activity heatmap.
+CodeVault v1.4.1 introduces an automatically generated GitHub-compatible coding activity heatmap.
 
 Generated at:
 
