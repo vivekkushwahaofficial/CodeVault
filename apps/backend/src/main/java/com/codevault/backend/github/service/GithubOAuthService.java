@@ -1,5 +1,7 @@
 package com.codevault.backend.github.service;
 
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,8 +19,8 @@ import com.codevault.backend.github.dto.GithubTokenResponse;
 @Service
 public class GithubOAuthService {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(GithubOAuthService.class);
+    private static final Logger logger
+            = LoggerFactory.getLogger(GithubOAuthService.class);
 
     private final GithubProperties githubProperties;
     private final WebClient githubOAuthClient;
@@ -31,21 +33,36 @@ public class GithubOAuthService {
         this.githubOAuthClient = githubOAuthClient;
     }
 
-    public GithubTokenResponse exchangeCode(String code) {
+    public GithubTokenResponse exchangeCode(
+            String code,
+            String redirectUri
+    ) {
+
+        if (!isAllowedRedirectUri(redirectUri)) {
+
+            logger.warn(
+                    "Rejected unauthorized GitHub redirect URI: {}",
+                    redirectUri
+            );
+
+            throw new GithubOAuthException(
+                    "Unauthorized GitHub redirect URI."
+            );
+        }
 
         logger.info("========================================");
         logger.info("Exchanging GitHub authorization code...");
         logger.info("GitHub Client ID: {}", githubProperties.getClientId());
-        logger.info("GitHub Redirect URI: {}", githubProperties.getRedirectUri());
+        logger.info("GitHub Redirect URI: {}", redirectUri);
         logger.info("========================================");
 
-        MultiValueMap<String, String> formData =
-                new LinkedMultiValueMap<>();
+        MultiValueMap<String, String> formData
+                = new LinkedMultiValueMap<>();
 
         formData.add("client_id", githubProperties.getClientId());
         formData.add("client_secret", githubProperties.getClientSecret());
         formData.add("code", code);
-        formData.add("redirect_uri", githubProperties.getRedirectUri());
+        formData.add("redirect_uri", redirectUri);
 
         GithubTokenResponse response;
 
@@ -102,5 +119,26 @@ public class GithubOAuthService {
         logger.info("GitHub token exchange completed successfully.");
 
         return response;
+    }
+
+    private boolean isAllowedRedirectUri(String redirectUri) {
+
+        if (redirectUri == null || redirectUri.isBlank()) {
+            return false;
+        }
+
+        String allowedRedirectUris
+                = githubProperties.getAllowedRedirectUris();
+
+        if (allowedRedirectUris == null
+                || allowedRedirectUris.isBlank()) {
+            return false;
+        }
+
+        return Arrays.stream(
+                allowedRedirectUris.split(",")
+        )
+                .map(String::trim)
+                .anyMatch(redirectUri::equals);
     }
 }

@@ -16,8 +16,6 @@ export default defineConfig({
       "Automatically extract and sync coding solutions to GitHub.",
 
     // Stable extension ID
-    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvaLlfmE+X4kGdZNCsyBJLuN6XPzAGlfCW4hsUbUCYQahqtofVpy/vOCjuwP5uLdtHoip7JanTbgcCvmD5HlmMRUojL2cy6302Kl+7YrmPdQcqZhNxu+KWfemuzJ4yx+ohY+Sz9abSda0ZGvCF6bYFHR0j4c3h3AAUYkJOmLrVHF8qa52O6YbsN/51oCsiwVBgYaiu9/JRHHIbpRD20VJHgmy8EfRUjxuTtUJsDenDWKX+eLpAG8MVt/osKxWf/en1LkEKmDM7/9K6Q0LJUJ6gVkAiicDk111sBtlOkRhZ3+XU0MV/seU+263drvFkM38I6897eadc6L3wUUsZuCD1QIDAQAB",
-
     action: {
       default_title: "CodeVault",
     },
