@@ -495,7 +495,7 @@ cd apps/backend
 
 ### Coding Activity Heatmap
 
-v1.4.0 introduces:
+v1.4.1 introduces:
 
 * 365-day coding activity heatmap
 * Automatic solved-date processing
