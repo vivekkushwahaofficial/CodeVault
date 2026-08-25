@@ -1,5 +1,7 @@
 package com.codevault.backend.github.service;
 
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,6 +37,18 @@ public class GithubOAuthService {
             String code,
             String redirectUri
     ) {
+
+        if (!isAllowedRedirectUri(redirectUri)) {
+
+            logger.warn(
+                    "Rejected unauthorized GitHub redirect URI: {}",
+                    redirectUri
+            );
+
+            throw new GithubOAuthException(
+                    "Unauthorized GitHub redirect URI."
+            );
+        }
 
         logger.info("========================================");
         logger.info("Exchanging GitHub authorization code...");
@@ -105,5 +119,26 @@ public class GithubOAuthService {
         logger.info("GitHub token exchange completed successfully.");
 
         return response;
+    }
+
+    private boolean isAllowedRedirectUri(String redirectUri) {
+
+        if (redirectUri == null || redirectUri.isBlank()) {
+            return false;
+        }
+
+        String allowedRedirectUris
+                = githubProperties.getAllowedRedirectUris();
+
+        if (allowedRedirectUris == null
+                || allowedRedirectUris.isBlank()) {
+            return false;
+        }
+
+        return Arrays.stream(
+                allowedRedirectUris.split(",")
+        )
+                .map(String::trim)
+                .anyMatch(redirectUri::equals);
     }
 }
