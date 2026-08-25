@@ -17,8 +17,8 @@ import com.codevault.backend.github.dto.GithubTokenResponse;
 @Service
 public class GithubOAuthService {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(GithubOAuthService.class);
+    private static final Logger logger
+            = LoggerFactory.getLogger(GithubOAuthService.class);
 
     private final GithubProperties githubProperties;
     private final WebClient githubOAuthClient;
@@ -31,21 +31,24 @@ public class GithubOAuthService {
         this.githubOAuthClient = githubOAuthClient;
     }
 
-    public GithubTokenResponse exchangeCode(String code) {
+    public GithubTokenResponse exchangeCode(
+            String code,
+            String redirectUri
+    ) {
 
         logger.info("========================================");
         logger.info("Exchanging GitHub authorization code...");
         logger.info("GitHub Client ID: {}", githubProperties.getClientId());
-        logger.info("GitHub Redirect URI: {}", githubProperties.getRedirectUri());
+        logger.info("GitHub Redirect URI: {}", redirectUri);
         logger.info("========================================");
 
-        MultiValueMap<String, String> formData =
-                new LinkedMultiValueMap<>();
+        MultiValueMap<String, String> formData
+                = new LinkedMultiValueMap<>();
 
         formData.add("client_id", githubProperties.getClientId());
         formData.add("client_secret", githubProperties.getClientSecret());
         formData.add("code", code);
-        formData.add("redirect_uri", githubProperties.getRedirectUri());
+        formData.add("redirect_uri", redirectUri);
 
         GithubTokenResponse response;
 
