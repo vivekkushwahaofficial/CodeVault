@@ -18,7 +18,15 @@ public class GithubProperties {
     private String clientSecret;
 
     /**
-     * Allowed GitHub OAuth redirect URIs
+     * Legacy GitHub OAuth redirect URI.
+     *
+     * Used by older extension versions that do not send a browser-specific
+     * redirect URI.
+     */
+    private String redirectUri;
+
+    /**
+     * Allowed GitHub OAuth redirect URIs for newer extension versions.
      */
     private String allowedRedirectUris;
 
@@ -36,6 +44,14 @@ public class GithubProperties {
 
     public void setClientSecret(String clientSecret) {
         this.clientSecret = clientSecret;
+    }
+
+    public String getRedirectUri() {
+        return redirectUri;
+    }
+
+    public void setRedirectUri(String redirectUri) {
+        this.redirectUri = redirectUri;
     }
 
     public String getAllowedRedirectUris() {

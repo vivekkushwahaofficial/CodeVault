@@ -38,31 +38,74 @@ public class GithubOAuthService {
             String redirectUri
     ) {
 
-        if (!isAllowedRedirectUri(redirectUri)) {
+        String effectiveRedirectUri;
 
-            logger.warn(
-                    "Rejected unauthorized GitHub redirect URI: {}",
-                    redirectUri
+        /*
+         * Backward compatibility:
+         * Older extension versions do not send a redirect URI.
+         * In that case, use the legacy configured redirect URI.
+         */
+        if (redirectUri == null || redirectUri.isBlank()) {
+
+            effectiveRedirectUri
+                    = githubProperties.getRedirectUri();
+
+            logger.info(
+                    "No redirect URI provided. Using legacy configured redirect URI."
             );
 
-            throw new GithubOAuthException(
-                    "Unauthorized GitHub redirect URI."
-            );
+        } else {
+
+            /*
+             * New extension versions send a browser-specific
+             * redirect URI. It must be explicitly allowlisted.
+             */
+            if (!isAllowedRedirectUri(redirectUri)) {
+
+                logger.warn(
+                        "Rejected unauthorized GitHub redirect URI: {}",
+                        redirectUri
+                );
+
+                throw new GithubOAuthException(
+                        "Unauthorized GitHub redirect URI."
+                );
+            }
+
+            effectiveRedirectUri = redirectUri;
         }
 
         logger.info("========================================");
         logger.info("Exchanging GitHub authorization code...");
         logger.info("GitHub Client ID: {}", githubProperties.getClientId());
-        logger.info("GitHub Redirect URI: {}", redirectUri);
+        logger.info(
+                "GitHub Redirect URI: {}",
+                effectiveRedirectUri
+        );
         logger.info("========================================");
 
         MultiValueMap<String, String> formData
                 = new LinkedMultiValueMap<>();
 
-        formData.add("client_id", githubProperties.getClientId());
-        formData.add("client_secret", githubProperties.getClientSecret());
-        formData.add("code", code);
-        formData.add("redirect_uri", redirectUri);
+        formData.add(
+                "client_id",
+                githubProperties.getClientId()
+        );
+
+        formData.add(
+                "client_secret",
+                githubProperties.getClientSecret()
+        );
+
+        formData.add(
+                "code",
+                code
+        );
+
+        formData.add(
+                "redirect_uri",
+                effectiveRedirectUri
+        );
 
         GithubTokenResponse response;
 
@@ -70,15 +113,22 @@ public class GithubOAuthService {
 
             response = githubOAuthClient.post()
                     .uri("/login/oauth/access_token")
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(BodyInserters.fromFormData(formData))
+                    .contentType(
+                            MediaType.APPLICATION_FORM_URLENCODED
+                    )
+                    .body(
+                            BodyInserters.fromFormData(formData)
+                    )
                     .retrieve()
                     .bodyToMono(GithubTokenResponse.class)
                     .block();
 
         } catch (Exception ex) {
 
-            logger.error("Failed to exchange GitHub authorization code.", ex);
+            logger.error(
+                    "Failed to exchange GitHub authorization code.",
+                    ex
+            );
 
             throw new GithubOAuthException(
                     "Failed to communicate with GitHub.",
@@ -88,7 +138,9 @@ public class GithubOAuthService {
 
         if (response == null) {
 
-            logger.error("GitHub returned a null response.");
+            logger.error(
+                    "GitHub returned a null response."
+            );
 
             throw new GithubOAuthException(
                     "GitHub did not return a response."
@@ -109,19 +161,25 @@ public class GithubOAuthService {
 
         if (!response.hasAccessToken()) {
 
-            logger.error("GitHub did not return an access token.");
+            logger.error(
+                    "GitHub did not return an access token."
+            );
 
             throw new GithubOAuthException(
                     "Access token not received from GitHub."
             );
         }
 
-        logger.info("GitHub token exchange completed successfully.");
+        logger.info(
+                "GitHub token exchange completed successfully."
+        );
 
         return response;
     }
 
-    private boolean isAllowedRedirectUri(String redirectUri) {
+    private boolean isAllowedRedirectUri(
+            String redirectUri
+    ) {
 
         if (redirectUri == null || redirectUri.isBlank()) {
             return false;

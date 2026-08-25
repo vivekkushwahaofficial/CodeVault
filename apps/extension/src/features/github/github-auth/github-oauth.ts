@@ -12,8 +12,18 @@ export async function authenticateGithub() {
 
   try {
 
+    // Get the browser-specific OAuth redirect URI.
     const redirectUri =
       browser.identity.getRedirectURL();
+
+    // Get the ID assigned to this installed extension.
+    const extensionId =
+      browser.runtime.id;
+
+    console.log(
+      "[CodeVault] Extension ID:",
+      extensionId
+    );
 
     console.log(
       "[CodeVault] Redirect URI:",
