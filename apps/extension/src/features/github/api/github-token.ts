@@ -1,5 +1,6 @@
 export async function exchangeGithubCode(
-  code: string
+  code: string,
+  redirectUri: string
 ): Promise<string> {
 
   const response = await fetch(
@@ -13,6 +14,7 @@ export async function exchangeGithubCode(
 
       body: JSON.stringify({
         code,
+        redirectUri,
       }),
     }
   );

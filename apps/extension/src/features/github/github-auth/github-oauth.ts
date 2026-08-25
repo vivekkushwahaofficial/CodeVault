@@ -134,7 +134,10 @@ export async function authenticateGithub() {
     );
 
     const accessToken =
-      await exchangeGithubCode(code);
+      await exchangeGithubCode(
+        code,
+        redirectUri
+      );
 
     console.log(
       "[CodeVault] Access token received"

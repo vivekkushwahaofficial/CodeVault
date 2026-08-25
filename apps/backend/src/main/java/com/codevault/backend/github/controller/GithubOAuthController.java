@@ -29,8 +29,11 @@ public class GithubOAuthController {
             @Valid @RequestBody GithubTokenRequest request
     ) {
 
-        GithubTokenResponse response =
-                githubOAuthService.exchangeCode(request.code());
+        GithubTokenResponse response
+                = githubOAuthService.exchangeCode(
+                        request.code(),
+                        request.redirectUri()
+                );
 
         return ResponseEntity.ok(response);
     }
