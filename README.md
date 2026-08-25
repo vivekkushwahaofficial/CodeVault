@@ -2,7 +2,7 @@
 
 > Automatically detect, organize, and synchronize accepted coding solutions from supported coding platforms to GitHub.
 
-![Version](https://img.shields.io/badge/version-v1.4.0-blue)
+![Version](https://img.shields.io/badge/version-v1.4.1-blue)
 ![Status](https://img.shields.io/badge/status-Active-success)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Platforms](https://img.shields.io/badge/platforms-3-orange)
@@ -491,7 +491,7 @@ cd apps/backend
 
 # 📊 Current Release
 
-## CodeVault v1.4.0
+## CodeVault v1.4.1
 
 ### Coding Activity Heatmap
 
