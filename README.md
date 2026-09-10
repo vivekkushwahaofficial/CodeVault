@@ -22,7 +22,13 @@ Instead of manually copying solutions, creating folders, generating documentatio
 - 🔵 HackerRank
 
 ---
+## 🚀 Install CodeVault
 
+[![Install from Chrome Web Store](https://img.shields.io/badge/Install-Chrome%20Web%20Store-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/codevault/loigjljekeahnjccojnnkmagibghofbn)
+
+🌐 [Official Website](https://code-vault-website.vercel.app/)
+
+---
 # ✨ Features
 
 ## 🔄 Automatic Solution Detection
@@ -129,7 +135,7 @@ No manual README editing is required.
 
 ## 🔥 Coding Activity Heatmap
 
-CodeVault v1.4.1 introduces an automatically generated GitHub-compatible coding activity heatmap.
+CodeVault v1.4.0 introduces an automatically generated GitHub-compatible coding activity heatmap.
 
 Generated at:
 
@@ -491,11 +497,11 @@ cd apps/backend
 
 # 📊 Current Release
 
-## CodeVault v1.4.1
+## CodeVault v1.4.0
 
 ### Coding Activity Heatmap
 
-v1.4.1 introduces:
+v1.4.0 introduces:
 
 * 365-day coding activity heatmap
 * Automatic solved-date processing
