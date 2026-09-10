@@ -181,12 +181,15 @@ export class ContentOrchestrator {
        *       Problem/
        *         Solution.ext
        */
-      const solutionPackage =
-        await buildSolutionPackage(
-          metadata,
-          solution,
-          problemStatement,
-        );
+     const solutionPackage =
+  await buildSolutionPackage(
+    {
+      ...metadata,
+      solvedAt: metadata.solvedAt.toISOString(),
+    },
+    solution,
+    problemStatement,
+  );
 
       console.log(
         "[CodeVault] Solution package built:",

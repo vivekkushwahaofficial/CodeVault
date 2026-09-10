@@ -15,11 +15,6 @@ export async function authenticateGithub() {
     const redirectUri =
       browser.identity.getRedirectURL();
 
-    console.log(
-      "[CodeVault] Redirect URI:",
-      redirectUri
-    );
-
     const githubUrl =
       new URL(
         "https://github.com/login/oauth/authorize"
@@ -44,11 +39,6 @@ export async function authenticateGithub() {
       githubUrl.toString();
 
     console.log(
-      "[CodeVault] OAuth URL:",
-      oauthUrl
-    );
-
-    console.log(
       "[CodeVault] Starting web auth flow..."
     );
 
@@ -67,30 +57,13 @@ export async function authenticateGithub() {
 
     } catch (oauthError) {
 
-      console.error(
-        "[CodeVault] REAL OAuth ERROR:",
-        JSON.stringify(
-          oauthError,
-          null,
-          2
-        )
-      );
-
-      console.error(
-        "[CodeVault] Error message:",
-        oauthError instanceof Error
-          ? oauthError.message
-          : String(oauthError)
-      );
+console.error(
+  "[CodeVault] GitHub OAuth request failed."
+);
 
       throw oauthError;
 
     }
-
-    console.log(
-      "[CodeVault] Response URL:",
-      responseUrl
-    );
 
     if (!responseUrl) {
 
@@ -126,10 +99,6 @@ export async function authenticateGithub() {
     }
 
     console.log(
-      "[CodeVault] Authorization code received"
-    );
-
-    console.log(
       "[CodeVault] Sending code to backend..."
     );
 
@@ -137,18 +106,8 @@ export async function authenticateGithub() {
       await exchangeGithubCode(code);
 
     console.log(
-      "[CodeVault] Access token received"
-    );
-
-    console.log(
-      "[CodeVault] Token prefix:",
-      accessToken.substring(0, 20)
-    );
-
-    console.log(
-      "[CodeVault] Token length:",
-      accessToken.length
-    );
+  "[CodeVault] GitHub authentication successful."
+  );
 
     await saveGithubSettings({
 
@@ -172,7 +131,6 @@ export async function authenticateGithub() {
 
     console.error(
       "[CodeVault] GitHub OAuth failed:",
-      error
     );
 
     alert(
