@@ -28,6 +28,8 @@ Instead of manually copying solutions, creating folders, generating documentatio
 
 🌐 [Official Website](https://code-vault-website.vercel.app/)
 
+🔗 [LinkedIn](https://www.linkedin.com/company/codevault-tool/)
+
 ---
 # ✨ Features
 
